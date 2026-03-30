@@ -1,0 +1,11 @@
+case_id,user_text,text_top_emotion,face_top_emotion,fused_top_emotion,response,empathy_rating,social_presence_rating,trust_rating,notes
+1,I am thrilled with the result and feel genuinely happy.,happy,happy,happy,"Nice, that reads as a good moment.",,,,
+2,I feel sad and drained after losing the opportunity.,sad,sad,sad,That seems difficult. Let us focus on one small next step.,,,,
+3,I am furious that the system keeps crashing.,angry,angry,angry,I can see frustration here. Let us slow it down.,,,,
+4,I am nervous about the interview tomorrow.,fear,fear,fear,That sounds uncertain. I can help make the next step feel safer.,,,,
+5,"Wow, I did not expect that announcement at all.",surprise,surprise,surprise,Interesting. We can make sense of it together.,,,,
+6,"I am thrilled with the result, but the room felt gloomy to me.",neutral,sad,neutral,Thanks for sharing. I will keep this clear and concise.,,,,
+7,"I feel sad and drained after losing the opportunity, even though everyone looks upbeat.",sad,happy,happy,I am picking up a positive tone here.,,,,
+8,"I am angry about the delay, but the room feels calm and neutral.",angry,neutral,neutral,Thanks for sharing. I will keep this clear and concise.,,,,
+9,"I am okay, just checking in and moving through the day.",neutral,neutral,neutral,That seems steady. I can help with the next step.,,,,
+10,"Part of me feels hopeful, part of me feels tired.",neutral,neutral,neutral,"I am getting a neutral signal, so I will keep this practical.",,,,
