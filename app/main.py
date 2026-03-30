@@ -9,13 +9,16 @@ try:
     )
     from app.fusion import get_top_n_emotions, fuse_emotions
     from app.response_generator import generate_response
-    from app.text_emotion import detect_text_emotion
+    from app.text_emotion import (
+        detect_text_emotion,
+        get_text_emotion_backend_status,
+    )
     from app.utils import probs_to_dataframe
 except ImportError:  # pragma: no cover - supports running from app/ directly
     from face_emotion import detect_face_emotion_from_image, get_face_analysis_warning
     from fusion import get_top_n_emotions, fuse_emotions
     from response_generator import generate_response
-    from text_emotion import detect_text_emotion
+    from text_emotion import detect_text_emotion, get_text_emotion_backend_status
     from utils import probs_to_dataframe
 
 DEFAULT_TEXT = "I am okay, but a little tired."
@@ -25,12 +28,14 @@ def analyze(user_text: str, alpha: float, face_image=None) -> dict[str, object]:
     """Run the full emotion pipeline for the demo."""
 
     text_probs = detect_text_emotion(user_text)
+    text_backend_status = get_text_emotion_backend_status()
     face_probs = detect_face_emotion_from_image(face_image)
     face_warning = get_face_analysis_warning()
     fused_probs, fused_emotion = fuse_emotions(text_probs, face_probs, alpha)
     response = generate_response(user_text, fused_emotion)
     return {
         "text_probs": text_probs,
+        "text_backend_status": text_backend_status,
         "face_probs": face_probs,
         "face_warning": face_warning,
         "fused_probs": fused_probs,
@@ -71,6 +76,7 @@ def main() -> None:
     st.title("HCI Bimodal Affective Alignment")
     st.write(
         "A mini research-style prototype that combines text emotion recognition, "
+        "pretrained transformer-based text emotion recognition when available, "
         "image-based facial emotion recognition, weighted fusion, and empathetic "
         "response generation."
     )
@@ -81,9 +87,12 @@ def main() -> None:
             "This prototype studies bimodal affective alignment by combining text "
             "and facial cues before generating a short supportive response."
         )
-        st.write("Current stage: Day 3 Prototype")
+        st.write("Current stage: Day 4 Prototype")
         st.caption(
-            "Image-based facial analysis is used in this Day 3 prototype."
+            "Day 4 uses a pretrained transformer-based text emotion module when available."
+        )
+        st.caption(
+            "Image-based facial analysis remains part of the prototype."
         )
 
     uploaded_image = st.file_uploader(
@@ -93,7 +102,7 @@ def main() -> None:
     )
     uploaded_image_bytes = uploaded_image.getvalue() if uploaded_image is not None else None
     if uploaded_image_bytes is not None:
-        st.image(uploaded_image_bytes, caption="Uploaded image preview", use_container_width=True)
+        st.image(uploaded_image_bytes, caption="Uploaded image preview", width="stretch")
     else:
         st.caption(
             "No image uploaded yet. The app will use a fallback facial distribution when you run analysis."
@@ -125,11 +134,16 @@ def main() -> None:
         fused_top_3 = get_top_n_emotions(results["fused_probs"], n=3)
 
         st.markdown("### A) Text Emotion")
-        st.dataframe(_probability_table(results["text_probs"]), use_container_width=True)
+        st.dataframe(_probability_table(results["text_probs"]), width="stretch")
+        text_backend_status = results["text_backend_status"]
+        if text_backend_status["mode"] == "transformer":
+            st.info(text_backend_status["message"])
+        else:
+            st.warning(text_backend_status["message"])
         _emotion_callout(st, text_top, "Text signal")
 
         st.markdown("### B) Face Emotion")
-        st.dataframe(_probability_table(results["face_probs"]), use_container_width=True)
+        st.dataframe(_probability_table(results["face_probs"]), width="stretch")
         if results["face_warning"]:
             st.warning(results["face_warning"])
         else:
@@ -137,7 +151,7 @@ def main() -> None:
         _emotion_callout(st, face_top, "Face signal")
 
         st.markdown("### C) Fused Emotion")
-        st.dataframe(_probability_table(results["fused_probs"]), use_container_width=True)
+        st.dataframe(_probability_table(results["fused_probs"]), width="stretch")
         top_3_frame = [
             {
                 "Rank": rank,
@@ -147,7 +161,7 @@ def main() -> None:
             for rank, (emotion, probability) in enumerate(fused_top_3, start=1)
         ]
         st.caption("Top 3 emotions from the fused distribution")
-        st.dataframe(top_3_frame, use_container_width=True)
+        st.dataframe(top_3_frame, width="stretch")
 
         st.markdown("### D) Final Detected Emotion")
         final_emotion = results["fused_emotion"]

@@ -1,10 +1,60 @@
-"""Rule-based text emotion detection for the Day 2 prototype."""
+"""Transformer-first text emotion detection with rule-based fallback."""
 
 from __future__ import annotations
 
 import re
+from functools import lru_cache
+from typing import Any
+
+try:
+    from app.utils import normalize_probs
+except ImportError:  # pragma: no cover - supports running from app/ directly
+    from utils import normalize_probs
 
 EMOTIONS = ["happy", "sad", "angry", "neutral", "fear", "surprise", "disgust"]
+
+_TEXT_MODEL_NAME = "j-hartmann/emotion-english-distilroberta-base"
+
+_TEXT_BACKEND_STATUS = {
+    "mode": "uninitialized",
+    "message": "Text emotion backend not initialized.",
+}
+
+_MODEL_LABEL_TO_PROJECT = {
+    "anger": "angry",
+    "annoyance": "angry",
+    "disapproval": "angry",
+    "frustration": "angry",
+    "disgust": "disgust",
+    "fear": "fear",
+    "nervousness": "fear",
+    "anxiety": "fear",
+    "joy": "happy",
+    "joyful": "happy",
+    "happiness": "happy",
+    "happy": "happy",
+    "love": "happy",
+    "optimism": "happy",
+    "gratitude": "happy",
+    "admiration": "happy",
+    "amusement": "happy",
+    "caring": "happy",
+    "excitement": "happy",
+    "relief": "happy",
+    "pride": "happy",
+    "sadness": "sad",
+    "sad": "sad",
+    "grief": "sad",
+    "disappointment": "sad",
+    "remorse": "sad",
+    "embarrassment": "sad",
+    "neutral": "neutral",
+    "surprise": "surprise",
+    "astonishment": "surprise",
+    "realization": "surprise",
+    "confusion": "neutral",
+    "approval": "happy",
+}
 
 _KEYWORD_BANKS = {
     "happy": {
@@ -115,17 +165,24 @@ _NEUTRAL_HINTS = {
 }
 
 
+def _set_backend_status(mode: str, message: str) -> None:
+    """Store the active text emotion backend status for the UI."""
+
+    global _TEXT_BACKEND_STATUS
+    _TEXT_BACKEND_STATUS = {"mode": mode, "message": message}
+
+
+def get_text_emotion_backend_status() -> dict[str, str]:
+    """Return the current text emotion backend status."""
+
+    return dict(_TEXT_BACKEND_STATUS)
+
+
 def normalize_scores(scores: dict[str, float]) -> dict[str, float]:
     """Normalize raw emotion scores into a probability distribution."""
 
-    cleaned = {
-        emotion: max(0.0, float(scores.get(emotion, 0.0)))
-        for emotion in EMOTIONS
-    }
-    total = sum(cleaned.values())
-    if total <= 0:
-        return {emotion: 1.0 / len(EMOTIONS) for emotion in EMOTIONS}
-    return {emotion: cleaned[emotion] / total for emotion in EMOTIONS}
+    aligned = {emotion: float(scores.get(emotion, 0.0)) for emotion in EMOTIONS}
+    return normalize_probs(aligned)
 
 
 def _count_term(term: str, text_lower: str) -> int:
@@ -135,12 +192,102 @@ def _count_term(term: str, text_lower: str) -> int:
     return len(re.findall(pattern, text_lower))
 
 
-def detect_text_emotion(text: str) -> dict[str, float]:
-    """Estimate emotion probabilities from text using lexical heuristics.
+@lru_cache(maxsize=1)
+def load_text_emotion_pipeline():
+    """Load and cache the pretrained HuggingFace text emotion pipeline."""
 
-    Multiple keyword matches raise the associated emotion score, while neutral
-    cues keep mixed or ambiguous text anchored toward neutral.
-    """
+    try:
+        from transformers import pipeline
+    except Exception:
+        _set_backend_status(
+            "rule-based fallback",
+            "Transformers is unavailable. Using rule-based text emotion fallback.",
+        )
+        return None
+
+    try:
+        classifier = pipeline(
+            "text-classification",
+            model=_TEXT_MODEL_NAME,
+            tokenizer=_TEXT_MODEL_NAME,
+            top_k=None,
+            device=-1,
+        )
+    except Exception:
+        _set_backend_status(
+            "rule-based fallback",
+            "Transformer text model could not be loaded. Using rule-based text emotion fallback.",
+        )
+        return None
+
+    _set_backend_status(
+        "transformer",
+        "Using pretrained transformer-based text emotion module.",
+    )
+    return classifier
+
+
+def _flatten_pipeline_output(raw_output: Any) -> list[dict[str, Any]]:
+    """Flatten common HuggingFace pipeline output shapes into records."""
+
+    if raw_output is None:
+        return []
+
+    if isinstance(raw_output, dict):
+        if "label" in raw_output and "score" in raw_output:
+            return [raw_output]
+        if "emotion" in raw_output and isinstance(raw_output["emotion"], dict):
+            return [
+                {"label": label, "score": score}
+                for label, score in raw_output["emotion"].items()
+            ]
+        return [
+            {"label": label, "score": score}
+            for label, score in raw_output.items()
+            if isinstance(score, (int, float))
+        ]
+
+    if isinstance(raw_output, (list, tuple)):
+        flattened: list[dict[str, Any]] = []
+        for item in raw_output:
+            flattened.extend(_flatten_pipeline_output(item))
+        return flattened
+
+    return []
+
+
+def map_model_outputs_to_project_emotions(raw_output) -> dict[str, float]:
+    """Map transformer outputs into the seven-emotion project schema."""
+
+    mapped = {emotion: 0.0 for emotion in EMOTIONS}
+    unknown_mass = 0.0
+
+    for record in _flatten_pipeline_output(raw_output):
+        label = str(record.get("label", "")).strip().lower()
+        label = label.replace(" ", "_").replace("-", "_")
+        score = max(0.0, float(record.get("score", 0.0)))
+        project_emotion = _MODEL_LABEL_TO_PROJECT.get(label)
+        if project_emotion is None:
+            unknown_mass += score
+            continue
+        mapped[project_emotion] += score
+
+    if unknown_mass > 0:
+        mapped["neutral"] += unknown_mass
+
+    if sum(mapped.values()) <= 0:
+        mapped["neutral"] = 1.0
+
+    return normalize_probs(mapped)
+
+
+def detect_text_emotion_rule_based(text: str) -> dict[str, float]:
+    """Estimate emotion probabilities from text using lexical heuristics."""
+
+    _set_backend_status(
+        "rule-based fallback",
+        "Using rule-based text emotion fallback.",
+    )
 
     normalized_text = " ".join(re.findall(r"[a-z']+", (text or "").lower()))
     scores = {emotion: 0.4 for emotion in EMOTIONS}
@@ -167,3 +314,25 @@ def detect_text_emotion(text: str) -> dict[str, float]:
         scores["neutral"] += 5.0
 
     return normalize_scores(scores)
+
+
+def detect_text_emotion(text: str) -> dict[str, float]:
+    """Detect text emotion with a pretrained transformer or safe fallback."""
+
+    classifier = load_text_emotion_pipeline()
+    if classifier is not None:
+        try:
+            raw_output = classifier(text or "", truncation=True)
+            mapped = map_model_outputs_to_project_emotions(raw_output)
+            _set_backend_status(
+                "transformer",
+                "Using pretrained transformer-based text emotion module.",
+            )
+            return mapped
+        except Exception:
+            _set_backend_status(
+                "rule-based fallback",
+                "Transformer text analysis failed. Using rule-based text emotion fallback.",
+            )
+
+    return detect_text_emotion_rule_based(text)
