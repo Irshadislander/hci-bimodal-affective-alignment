@@ -24,3 +24,12 @@ pip install -r requirements.txt
 ## Text Emotion
 - The app uses a pretrained HuggingFace text emotion model when available.
 - If model loading fails, it falls back to the rule-based detector automatically.
+
+## Running Evaluation Tools
+- Open the Streamlit app and use the `Prototype Evaluation Tools` section.
+- `Run Ablation Study` saves a fixed-alpha comparison across the default case set.
+- `Run Alpha Sensitivity` saves a sweep across the default alpha grid.
+
+## CSV Outputs
+- Ablation results are saved to `experiments/ablation_results.csv`
+- Alpha sensitivity results are saved to `experiments/alpha_sensitivity.csv`

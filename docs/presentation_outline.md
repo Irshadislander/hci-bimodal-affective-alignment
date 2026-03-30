@@ -44,25 +44,31 @@
 - Review text, face, fused, and final outputs
 
 ## 11. Ablation Study
-- Text only
-- Face only
-- Fused
-- How the output changes
+- Show the side-by-side comparison for text-only, face-only, and fused modes
+- Highlight at least one case where fusion changes the final interpretation
+- Mention the alpha values used for the study
+- Explain why this slide matters for the research question
 
-## 12. Human Evaluation
-- Informal feedback or small study
-- Perceived empathy and usefulness
+## 12. Alpha Sensitivity
+- Show how alpha moves the fused prediction toward text or face
+- Point out stable cases versus sensitive cases
+- Mention the default alpha choices used in the prototype
+- Explain how this informs weighting decisions
 
-## 13. Results
-- Example outputs
+## 13. Case Study
+- Walk through one representative example end-to-end
+- Show the input text, image signal, fused output, and response
+- Briefly explain why the response is appropriate
+- Use this slide to make the prototype feel concrete
+
+## 14. Results
+- Example outputs from the evaluation workflow
 - Observed effect of alpha changes
-- Qualitative takeaways
-
-## 14. Limitations / Future Work
-- Mock facial input
-- Rule-based text detector
-- Need for model-based upgrades
+- Key ablation findings
+- Short summary of the strongest case-study examples
+- Brief note on the current limitations and the human-evaluation plan
 
 ## 15. Conclusion
 - Main takeaway
 - Why the prototype is a useful research scaffold
+- What the next iteration should improve

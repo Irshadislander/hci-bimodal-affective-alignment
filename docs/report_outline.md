@@ -45,21 +45,39 @@
 - Comparison of text-only, face-only, and fused outputs
 
 ## Ablation Study
-- Text only
-- Face only
-- Weighted fusion
-- Response generation without fusion context
+- Compare text-only, face-only, and bimodal fusion outputs on the same case set
+- Report when fusion improves the top emotion versus when it does not
+- Use alpha values `1.0`, `0.0`, and `0.5` to frame the ablation discussion
+- Include a short table or figure with representative case-level predictions
+- State what the ablation does and does not prove about the prototype
 
-## Human Evaluation
-- Small user study or informal feedback session
-- Perceived empathy
-- Perceived correctness of emotion detection
-- Perceived usefulness of the response
+## Alpha Sensitivity
+- Describe the alpha grid used in the prototype evaluation
+- Explain how changing alpha shifts the fused emotion toward text or face signals
+- Summarize stable cases versus sensitive cases
+- Report whether certain emotions are dominated by one modality
+- Include one plot or compact table showing the alpha trend
+
+## Case Studies
+- Select 2 to 4 interesting examples that show clear success or failure modes
+- Show the input text, text prediction, face prediction, fused prediction, and response
+- Explain why the fused decision makes sense, or where it is surprising
+- Use these examples to make the system behavior concrete for the reader
+- Tie the examples back to the research question
+
+## Human Evaluation Plan
+- Describe the planned participant task or informal review process
+- State what participants will rate: empathy, clarity, and emotional alignment
+- Explain how the evaluation will compare text-only, face-only, and fused outputs
+- Note the expected sample size and any ethics or consent considerations
+- Clarify that this is a prototype-level evaluation, not a clinical study
 
 ## Results and Discussion
 - Summarize patterns observed in the demo outputs
 - Explain when the fusion behaves well
 - Note cases where the rule-based heuristic is limited
+- Include the ablation and alpha-sensitivity findings
+- Discuss the strongest case-study examples and why they matter
 
 ## Limitations
 - Text module is rule-based, not learned

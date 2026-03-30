@@ -7,6 +7,13 @@ try:
         detect_face_emotion_from_image,
         get_face_analysis_warning,
     )
+    from app.experiment_runner import (
+        ABLATION_RESULTS_PATH,
+        ALPHA_SENSITIVITY_PATH,
+        DEFAULT_ALPHA_GRID,
+        run_ablation_study,
+        run_alpha_sensitivity,
+    )
     from app.fusion import get_top_n_emotions, fuse_emotions
     from app.response_generator import generate_response
     from app.text_emotion import (
@@ -16,6 +23,13 @@ try:
     from app.utils import probs_to_dataframe
 except ImportError:  # pragma: no cover - supports running from app/ directly
     from face_emotion import detect_face_emotion_from_image, get_face_analysis_warning
+    from experiment_runner import (
+        ABLATION_RESULTS_PATH,
+        ALPHA_SENSITIVITY_PATH,
+        DEFAULT_ALPHA_GRID,
+        run_ablation_study,
+        run_alpha_sensitivity,
+    )
     from fusion import get_top_n_emotions, fuse_emotions
     from response_generator import generate_response
     from text_emotion import detect_text_emotion, get_text_emotion_backend_status
@@ -87,9 +101,9 @@ def main() -> None:
             "This prototype studies bimodal affective alignment by combining text "
             "and facial cues before generating a short supportive response."
         )
-        st.write("Current stage: Day 4 Prototype")
+        st.write("Current stage: Day 5 Prototype")
         st.caption(
-            "Day 4 uses a pretrained transformer-based text emotion module when available."
+            "Day 5 uses a pretrained transformer-based text emotion module when available."
         )
         st.caption(
             "Image-based facial analysis remains part of the prototype."
@@ -170,6 +184,24 @@ def main() -> None:
 
         st.markdown("### E) Empathetic Response")
         st.info(results["response"])
+
+    st.divider()
+    st.subheader("Prototype Evaluation Tools")
+    st.caption(
+        "Text-only = alpha 1.0, face-only = alpha 0.0, bimodal = alpha 0.5."
+    )
+
+    eval_col1, eval_col2 = st.columns(2)
+    with eval_col1:
+        if st.button("Run Ablation Study", key="run_ablation_study"):
+            ablation_df = run_ablation_study(alpha=0.5)
+            st.success(f"Saved ablation results to {ABLATION_RESULTS_PATH}")
+            st.dataframe(ablation_df, width="stretch")
+    with eval_col2:
+        if st.button("Run Alpha Sensitivity", key="run_alpha_sensitivity"):
+            alpha_df = run_alpha_sensitivity(DEFAULT_ALPHA_GRID)
+            st.success(f"Saved alpha sensitivity results to {ALPHA_SENSITIVITY_PATH}")
+            st.dataframe(alpha_df, width="stretch")
 
 
 if __name__ == "__main__":

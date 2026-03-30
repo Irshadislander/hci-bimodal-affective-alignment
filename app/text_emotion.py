@@ -197,7 +197,11 @@ def load_text_emotion_pipeline():
     """Load and cache the pretrained HuggingFace text emotion pipeline."""
 
     try:
-        from transformers import pipeline
+        from transformers import (
+            AutoModelForSequenceClassification,
+            AutoTokenizer,
+            pipeline,
+        )
     except Exception:
         _set_backend_status(
             "rule-based fallback",
@@ -206,10 +210,18 @@ def load_text_emotion_pipeline():
         return None
 
     try:
+        tokenizer = AutoTokenizer.from_pretrained(
+            _TEXT_MODEL_NAME,
+            local_files_only=True,
+        )
+        model = AutoModelForSequenceClassification.from_pretrained(
+            _TEXT_MODEL_NAME,
+            local_files_only=True,
+        )
         classifier = pipeline(
             "text-classification",
-            model=_TEXT_MODEL_NAME,
-            tokenizer=_TEXT_MODEL_NAME,
+            model=model,
+            tokenizer=tokenizer,
             top_k=None,
             device=-1,
         )
