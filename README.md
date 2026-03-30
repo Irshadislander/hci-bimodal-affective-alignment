@@ -51,10 +51,22 @@ pip install -r requirements.txt
 - Run the evaluation tools first so the CSVs exist in `experiments/`.
 - Load the saved CSVs with `app.report_assets` to compute a short report summary.
 - Use `app.plot_results` to generate the report-ready PNG plots in `experiments/`.
+- Use `app.final_report_builder` to export `docs/report_tables.md` and `docs/report_status.md`.
 - The first serious report draft is saved at `docs/final_report_draft.md`.
 - The final presentation draft is saved at `docs/final_presentation_draft.md`.
 - The demo script is saved at `docs/demo_script.md`.
 - The results-summary draft is saved at `docs/results_summary_draft.md`.
+
+## Report Assets
+- `docs/final_report_draft.md` is the near-final written report draft.
+- `docs/report_tables.md` can be generated from the experiment CSVs with `app.final_report_builder.export_report_tables_markdown()`.
+- `docs/report_status.md` can be generated with `app.final_report_builder.export_report_status()`.
+- `docs/results_summary_draft.md` provides a short narrative for the results section.
+
+## Presentation Assets
+- `docs/final_presentation_draft.md` is the near-final slide-by-slide draft.
+- `docs/demo_script.md` gives the exact order for the live demo.
+- `docs/team_roles_and_work_split.md` records a simple project role mapping and status snapshot.
 
 ## CSV Outputs
 - Ablation results are saved to `experiments/ablation_results.csv`
@@ -67,3 +79,14 @@ pip install -r requirements.txt
 - Human evaluation summaries are saved to `experiments/human_eval_summary.csv`
 - Human evaluation plots are saved to `experiments/human_eval_summary_plot.png` and `experiments/helpfulness_summary_plot.png`
 - Plot outputs are saved to `experiments/ablation_counts.png`, `experiments/alpha_sensitivity_plot.png`, and `experiments/case_type_distribution.png`
+
+## Human Rating Workflow
+- Generate `experiments/mode_comparison_cases.csv` from the final evaluation pack.
+- Generate `experiments/human_rating_sheet.csv` for raters to fill in.
+- Collect completed scores in `experiments/human_rating_sheet_completed.csv`.
+- Run the aggregation step to create `experiments/human_eval_summary.csv`.
+- If completed ratings are available, the final report should insert the averaged empathy, social presence, trust, and helpfulness results.
+
+## Final Submission Checklist
+- Use `docs/final_report_submission_checklist.md` as the final packaging checklist.
+- Verify that the report, slides, CSVs, plots, and demo backup are all ready before submission.

@@ -3,7 +3,7 @@
 ## 1. Title
 - HCI Bimodal Affective Alignment
 - Text emotion, face emotion, weighted fusion, and empathetic response generation
-- Day 8 final prototype for the course project
+- Day 9 final prototype for the course project
 
 Speaker notes:
 - Introduce the project as a small but serious research-style HCI prototype.
@@ -112,7 +112,7 @@ Speaker notes:
 ## 12. Human Evaluation
 - Present the rating sheet for empathy, social presence, trust, and helpfulness.
 - Compare the three modes using a 1-5 scale.
-- Summarize the current averages if completed ratings are available.
+- Summarize the final human-rating averages if completed ratings are available; otherwise show the blank sheet and explain the collection plan.
 
 Speaker notes:
 - Show the human rating sheet and, if available, the aggregated summary plot.
@@ -141,7 +141,7 @@ Speaker notes:
 
 ## 15. Conclusion
 - The prototype demonstrates a full bimodal affective pipeline.
-- The evaluation workflow supports report writing and presentation preparation.
+- The evaluation workflow supports report writing, final tables, and presentation preparation.
 - The project offers a practical baseline for future HCI work.
 
 Speaker notes:
