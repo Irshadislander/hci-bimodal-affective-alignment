@@ -1,0 +1,61 @@
+case_id,user_text,alpha,text_top_emotion,text_top_probability,face_top_emotion,face_top_probability,fused_top_emotion,fused_top_probability,text_only_top_emotion,face_only_top_emotion,empathetic_response
+1,I am really happy with how this turned out.,0.0,happy,0.4262295081967213,neutral,0.62,neutral,0.62,happy,neutral,Understood. I will stay focused and supportive.
+2,Today felt rough and I am still sad about it.,0.0,sad,0.4262295081967213,neutral,0.62,neutral,0.62,sad,neutral,Understood. I will stay focused and supportive.
+3,I am frustrated because the system keeps failing.,0.0,angry,0.4166666666666667,neutral,0.62,neutral,0.62,angry,neutral,That seems steady. I can help with the next step.
+4,"I feel okay, just checking in for now.",0.0,neutral,0.738095238095238,neutral,0.62,neutral,0.62,neutral,neutral,That seems steady. I can help with the next step.
+5,I am nervous about the presentation tomorrow.,0.0,fear,0.396551724137931,neutral,0.62,neutral,0.62,fear,neutral,That seems steady. I can help with the next step.
+6,"Wow, I did not expect that result at all.",0.0,surprise,0.33962264150943394,neutral,0.62,neutral,0.62,surprise,neutral,That seems steady. I can help with the next step.
+7,That smelled gross and made me uncomfortable.,0.0,disgust,0.396551724137931,neutral,0.62,neutral,0.62,disgust,neutral,Thanks for sharing. I will keep this clear and concise.
+8,I am excited and relieved after finishing the task.,0.0,happy,0.5070422535211268,neutral,0.62,neutral,0.62,happy,neutral,That seems steady. I can help with the next step.
+9,"It is a mixed day: part of me feels hopeful, part of me feels tired.",0.0,neutral,0.5,neutral,0.62,neutral,0.62,neutral,neutral,That seems steady. I can help with the next step.
+10,"I am angry, but also a little worried about what comes next.",0.0,angry,0.32530120481927705,neutral,0.62,neutral,0.62,angry,neutral,Understood. I will stay focused and supportive.
+11,The meeting was fine and nothing unusual happened.,0.0,neutral,0.6301369863013698,neutral,0.62,neutral,0.62,neutral,neutral,That seems steady. I can help with the next step.
+12,"I feel a bit disappointed, but I can recover from it.",0.0,sad,0.3859649122807018,neutral,0.62,neutral,0.62,sad,neutral,Thanks for sharing. I will keep this clear and concise.
+1,I am really happy with how this turned out.,0.25,happy,0.4262295081967213,neutral,0.62,neutral,0.5264754098360656,happy,neutral,Understood. I will stay focused and supportive.
+2,Today felt rough and I am still sad about it.,0.25,sad,0.4262295081967213,neutral,0.62,neutral,0.5264754098360656,sad,neutral,Thanks for sharing. I will keep this clear and concise.
+3,I am frustrated because the system keeps failing.,0.25,angry,0.4166666666666667,neutral,0.62,neutral,0.5275,angry,neutral,"I am getting a neutral signal, so I will keep this practical."
+4,"I feel okay, just checking in for now.",0.25,neutral,0.738095238095238,neutral,0.62,neutral,0.6495238095238095,neutral,neutral,That seems steady. I can help with the next step.
+5,I am nervous about the presentation tomorrow.,0.25,fear,0.396551724137931,neutral,0.62,neutral,0.5296551724137931,fear,neutral,Understood. I will stay focused and supportive.
+6,"Wow, I did not expect that result at all.",0.25,surprise,0.33962264150943394,neutral,0.62,neutral,0.5357547169811321,surprise,neutral,"I am getting a neutral signal, so I will keep this practical."
+7,That smelled gross and made me uncomfortable.,0.25,disgust,0.396551724137931,neutral,0.62,neutral,0.5296551724137931,disgust,neutral,That seems steady. I can help with the next step.
+8,I am excited and relieved after finishing the task.,0.25,happy,0.5070422535211268,neutral,0.62,neutral,0.5178169014084507,happy,neutral,Understood. I will stay focused and supportive.
+9,"It is a mixed day: part of me feels hopeful, part of me feels tired.",0.25,neutral,0.5,neutral,0.62,neutral,0.59,neutral,neutral,Thanks for sharing. I will keep this clear and concise.
+10,"I am angry, but also a little worried about what comes next.",0.25,angry,0.32530120481927705,neutral,0.62,neutral,0.5101807228915662,angry,neutral,Thanks for sharing. I will keep this clear and concise.
+11,The meeting was fine and nothing unusual happened.,0.25,neutral,0.6301369863013698,neutral,0.62,neutral,0.6225342465753424,neutral,neutral,That seems steady. I can help with the next step.
+12,"I feel a bit disappointed, but I can recover from it.",0.25,sad,0.3859649122807018,neutral,0.62,neutral,0.5307894736842105,sad,neutral,"I am getting a neutral signal, so I will keep this practical."
+1,I am really happy with how this turned out.,0.5,happy,0.4262295081967213,neutral,0.62,neutral,0.4329508196721311,happy,neutral,Thanks for sharing. I will keep this clear and concise.
+2,Today felt rough and I am still sad about it.,0.5,sad,0.4262295081967213,neutral,0.62,neutral,0.4329508196721311,sad,neutral,Understood. I will stay focused and supportive.
+3,I am frustrated because the system keeps failing.,0.5,angry,0.4166666666666667,neutral,0.62,neutral,0.435,angry,neutral,Understood. I will stay focused and supportive.
+4,"I feel okay, just checking in for now.",0.5,neutral,0.738095238095238,neutral,0.62,neutral,0.679047619047619,neutral,neutral,That seems steady. I can help with the next step.
+5,I am nervous about the presentation tomorrow.,0.5,fear,0.396551724137931,neutral,0.62,neutral,0.43931034482758624,fear,neutral,Thanks for sharing. I will keep this clear and concise.
+6,"Wow, I did not expect that result at all.",0.5,surprise,0.33962264150943394,neutral,0.62,neutral,0.4515094339622642,surprise,neutral,"I am getting a neutral signal, so I will keep this practical."
+7,That smelled gross and made me uncomfortable.,0.5,disgust,0.396551724137931,neutral,0.62,neutral,0.43931034482758624,disgust,neutral,"I am getting a neutral signal, so I will keep this practical."
+8,I am excited and relieved after finishing the task.,0.5,happy,0.5070422535211268,neutral,0.62,neutral,0.41563380281690143,happy,neutral,Understood. I will stay focused and supportive.
+9,"It is a mixed day: part of me feels hopeful, part of me feels tired.",0.5,neutral,0.5,neutral,0.62,neutral,0.56,neutral,neutral,"I am getting a neutral signal, so I will keep this practical."
+10,"I am angry, but also a little worried about what comes next.",0.5,angry,0.32530120481927705,neutral,0.62,neutral,0.4003614457831325,angry,neutral,That seems steady. I can help with the next step.
+11,The meeting was fine and nothing unusual happened.,0.5,neutral,0.6301369863013698,neutral,0.62,neutral,0.6250684931506849,neutral,neutral,That seems steady. I can help with the next step.
+12,"I feel a bit disappointed, but I can recover from it.",0.5,sad,0.3859649122807018,neutral,0.62,neutral,0.44157894736842107,sad,neutral,Understood. I will stay focused and supportive.
+1,I am really happy with how this turned out.,0.75,happy,0.4262295081967213,neutral,0.62,happy,0.33967213114754097,happy,neutral,"Nice, that reads as a good moment."
+2,Today felt rough and I am still sad about it.,0.75,sad,0.4262295081967213,neutral,0.62,sad,0.33967213114754097,sad,neutral,That seems difficult. Let us focus on one small next step.
+3,I am frustrated because the system keeps failing.,0.75,angry,0.4166666666666667,neutral,0.62,neutral,0.3425,angry,neutral,Understood. I will stay focused and supportive.
+4,"I feel okay, just checking in for now.",0.75,neutral,0.738095238095238,neutral,0.62,neutral,0.7085714285714285,neutral,neutral,Understood. I will stay focused and supportive.
+5,I am nervous about the presentation tomorrow.,0.75,fear,0.396551724137931,neutral,0.62,neutral,0.34896551724137936,fear,neutral,"I am getting a neutral signal, so I will keep this practical."
+6,"Wow, I did not expect that result at all.",0.75,surprise,0.33962264150943394,neutral,0.62,neutral,0.36726415094339626,surprise,neutral,Understood. I will stay focused and supportive.
+7,That smelled gross and made me uncomfortable.,0.75,disgust,0.396551724137931,neutral,0.62,neutral,0.34896551724137936,disgust,neutral,That seems steady. I can help with the next step.
+8,I am excited and relieved after finishing the task.,0.75,happy,0.5070422535211268,neutral,0.62,happy,0.4002816901408451,happy,neutral,That sounds positive. I am glad it is going well.
+9,"It is a mixed day: part of me feels hopeful, part of me feels tired.",0.75,neutral,0.5,neutral,0.62,neutral,0.53,neutral,neutral,That seems steady. I can help with the next step.
+10,"I am angry, but also a little worried about what comes next.",0.75,angry,0.32530120481927705,neutral,0.62,neutral,0.29054216867469873,angry,neutral,That seems steady. I can help with the next step.
+11,The meeting was fine and nothing unusual happened.,0.75,neutral,0.6301369863013698,neutral,0.62,neutral,0.6276027397260274,neutral,neutral,"I am getting a neutral signal, so I will keep this practical."
+12,"I feel a bit disappointed, but I can recover from it.",0.75,sad,0.3859649122807018,neutral,0.62,neutral,0.35236842105263155,sad,neutral,That seems steady. I can help with the next step.
+1,I am really happy with how this turned out.,1.0,happy,0.4262295081967213,neutral,0.62,happy,0.4262295081967213,happy,neutral,That sounds positive. I am glad it is going well.
+2,Today felt rough and I am still sad about it.,1.0,sad,0.4262295081967213,neutral,0.62,sad,0.4262295081967213,sad,neutral,I am sorry this feels hard. We can take it step by step.
+3,I am frustrated because the system keeps failing.,1.0,angry,0.4166666666666667,neutral,0.62,angry,0.4166666666666667,angry,neutral,That sounds tense. We can work through it carefully.
+4,"I feel okay, just checking in for now.",1.0,neutral,0.738095238095238,neutral,0.62,neutral,0.738095238095238,neutral,neutral,Thanks for sharing. I will keep this clear and concise.
+5,I am nervous about the presentation tomorrow.,1.0,fear,0.396551724137931,neutral,0.62,fear,0.396551724137931,fear,neutral,I can help reduce uncertainty by breaking this down.
+6,"Wow, I did not expect that result at all.",1.0,surprise,0.33962264150943394,neutral,0.62,surprise,0.33962264150943394,surprise,neutral,Interesting. We can make sense of it together.
+7,That smelled gross and made me uncomfortable.,1.0,disgust,0.396551724137931,neutral,0.62,disgust,0.396551724137931,disgust,neutral,I hear discomfort there. Let us move toward something more workable.
+8,I am excited and relieved after finishing the task.,1.0,happy,0.5070422535211268,neutral,0.62,happy,0.5070422535211268,happy,neutral,That sounds positive. I am glad it is going well.
+9,"It is a mixed day: part of me feels hopeful, part of me feels tired.",1.0,neutral,0.5,neutral,0.62,neutral,0.5,neutral,neutral,Understood. I will stay focused and supportive.
+10,"I am angry, but also a little worried about what comes next.",1.0,angry,0.32530120481927705,neutral,0.62,angry,0.32530120481927705,angry,neutral,I can see frustration here. Let us slow it down.
+11,The meeting was fine and nothing unusual happened.,1.0,neutral,0.6301369863013698,neutral,0.62,neutral,0.6301369863013698,neutral,neutral,Understood. I will stay focused and supportive.
+12,"I feel a bit disappointed, but I can recover from it.",1.0,sad,0.3859649122807018,neutral,0.62,sad,0.3859649122807018,sad,neutral,I hear some sadness. We can keep moving gently.

@@ -1,4 +1,4 @@
-"""Smoke tests for the Day 8 emotion pipeline."""
+"""Smoke tests for the Day 9 emotion pipeline."""
 
 from __future__ import annotations
 
@@ -24,6 +24,12 @@ from app.experiment_runner import (
 )
 from app.face_emotion import detect_face_emotion_from_image, map_deepface_emotions
 from app.fusion import fuse_emotions
+from app.final_report_builder import (
+    build_report_result_tables,
+    export_report_status,
+    export_report_tables_markdown,
+    summarize_for_conclusion,
+)
 from app.human_eval import (
     HUMAN_EVAL_COLUMNS,
     make_human_eval_template,
@@ -101,6 +107,215 @@ def _patch_final_evaluation_pack(monkeypatch, tmp_path) -> None:
         "app.final_evaluation_pack.HUMAN_EVAL_SUMMARY_PATH",
         tmp_path / "human_eval_summary.csv",
     )
+
+
+def _patch_report_builder_inputs(monkeypatch, tmp_path) -> None:
+    """Create temporary report-builder inputs and point the modules at them."""
+
+    ablation_df = pd.DataFrame(
+        [
+            {
+                "case_id": 1,
+                "user_text": "I am happy.",
+                "alpha": 0.5,
+                "text_top_emotion": "happy",
+                "text_top_probability": 0.72,
+                "face_top_emotion": "neutral",
+                "face_top_probability": 0.61,
+                "fused_top_emotion": "happy",
+                "fused_top_probability": 0.66,
+                "text_only_top_emotion": "happy",
+                "face_only_top_emotion": "neutral",
+                "empathetic_response": "That sounds uplifting.",
+            },
+            {
+                "case_id": 2,
+                "user_text": "I am sad.",
+                "alpha": 0.5,
+                "text_top_emotion": "sad",
+                "text_top_probability": 0.70,
+                "face_top_emotion": "sad",
+                "face_top_probability": 0.64,
+                "fused_top_emotion": "sad",
+                "fused_top_probability": 0.68,
+                "text_only_top_emotion": "sad",
+                "face_only_top_emotion": "sad",
+                "empathetic_response": "I am sorry you are dealing with that.",
+            },
+        ]
+    )
+    alpha_df = pd.DataFrame(
+        [
+            {
+                "case_id": 1,
+                "user_text": "I am happy.",
+                "alpha": 0.0,
+                "text_top_emotion": "happy",
+                "text_top_probability": 0.72,
+                "face_top_emotion": "neutral",
+                "face_top_probability": 0.61,
+                "fused_top_emotion": "neutral",
+                "fused_top_probability": 0.61,
+                "text_only_top_emotion": "happy",
+                "face_only_top_emotion": "neutral",
+                "empathetic_response": "That sounds uplifting.",
+            },
+            {
+                "case_id": 1,
+                "user_text": "I am happy.",
+                "alpha": 1.0,
+                "text_top_emotion": "happy",
+                "text_top_probability": 0.72,
+                "face_top_emotion": "neutral",
+                "face_top_probability": 0.61,
+                "fused_top_emotion": "happy",
+                "fused_top_probability": 0.72,
+                "text_only_top_emotion": "happy",
+                "face_only_top_emotion": "neutral",
+                "empathetic_response": "That sounds uplifting.",
+            },
+        ]
+    )
+    case_df = pd.DataFrame(
+        [
+            {
+                "case_id": 1,
+                "user_text": "I am happy.",
+                "text_top_emotion": "happy",
+                "face_top_emotion": "neutral",
+                "fused_top_emotion": "happy",
+                "empathetic_response": "That sounds uplifting.",
+                "case_type": "Congruent",
+            },
+            {
+                "case_id": 2,
+                "user_text": "I am sad.",
+                "text_top_emotion": "sad",
+                "face_top_emotion": "sad",
+                "fused_top_emotion": "sad",
+                "empathetic_response": "I am sorry you are dealing with that.",
+                "case_type": "Dissonant",
+            },
+            {
+                "case_id": 3,
+                "user_text": "I am okay.",
+                "text_top_emotion": "neutral",
+                "face_top_emotion": "neutral",
+                "fused_top_emotion": "neutral",
+                "empathetic_response": "Thanks for checking in.",
+                "case_type": "Ambiguous",
+            },
+        ]
+    )
+    mode_df = pd.DataFrame(
+        [
+            {
+                "case_id": 1,
+                "user_text": "I am happy.",
+                "text_top_emotion": "happy",
+                "face_top_emotion": "neutral",
+                "fused_top_emotion": "happy",
+                "text_only_response": "That sounds uplifting.",
+                "face_only_response": "I am here with you.",
+                "fused_response": "That sounds uplifting.",
+                "case_type": "Congruent",
+            },
+            {
+                "case_id": 2,
+                "user_text": "I am sad.",
+                "text_top_emotion": "sad",
+                "face_top_emotion": "sad",
+                "fused_top_emotion": "sad",
+                "text_only_response": "I am sorry you are dealing with that.",
+                "face_only_response": "I am here with you.",
+                "fused_response": "I am sorry you are dealing with that.",
+                "case_type": "Dissonant",
+            },
+        ]
+    )
+    human_summary_df = pd.DataFrame(
+        [
+            {
+                "mode": "text_only",
+                "completed_rows": 6,
+                "empathy_rating_mean": 3.0,
+                "social_presence_rating_mean": 2.8,
+                "trust_rating_mean": 3.1,
+                "helpfulness_rating_mean": 3.2,
+            },
+            {
+                "mode": "face_only",
+                "completed_rows": 6,
+                "empathy_rating_mean": 2.7,
+                "social_presence_rating_mean": 2.6,
+                "trust_rating_mean": 2.8,
+                "helpfulness_rating_mean": 2.9,
+            },
+            {
+                "mode": "fused",
+                "completed_rows": 6,
+                "empathy_rating_mean": 3.5,
+                "social_presence_rating_mean": 3.4,
+                "trust_rating_mean": 3.6,
+                "helpfulness_rating_mean": 3.7,
+            },
+        ]
+    )
+    completed_rating_df = pd.DataFrame(
+        [
+            {
+                "rater_id": "r1",
+                "case_id": 1,
+                "case_type": "Congruent",
+                "user_text": "I am happy.",
+                "mode": "fused",
+                "detected_emotion": "happy",
+                "system_response": "That sounds uplifting.",
+                "empathy_rating": 5,
+                "social_presence_rating": 4,
+                "trust_rating": 4,
+                "helpfulness_rating": 5,
+                "notes": "Strong response.",
+            }
+        ]
+    )
+
+    ablation_path = tmp_path / "ablation_results.csv"
+    alpha_path = tmp_path / "alpha_sensitivity.csv"
+    case_path = tmp_path / "case_studies.csv"
+    mode_path = tmp_path / "mode_comparison_cases.csv"
+    summary_path = tmp_path / "human_eval_summary.csv"
+    human_sheet_path = tmp_path / "human_rating_sheet.csv"
+    completed_path = tmp_path / "human_rating_sheet_completed.csv"
+
+    ablation_df.to_csv(ablation_path, index=False)
+    alpha_df.to_csv(alpha_path, index=False)
+    case_df.to_csv(case_path, index=False)
+    mode_df.to_csv(mode_path, index=False)
+    human_summary_df.to_csv(summary_path, index=False)
+    completed_rating_df.to_csv(completed_path, index=False)
+    pd.DataFrame(columns=[
+        "rater_id",
+        "case_id",
+        "case_type",
+        "user_text",
+        "mode",
+        "detected_emotion",
+        "system_response",
+        "empathy_rating",
+        "social_presence_rating",
+        "trust_rating",
+        "helpfulness_rating",
+        "notes",
+    ]).to_csv(human_sheet_path, index=False)
+
+    monkeypatch.setattr("app.report_assets.ABLATION_RESULTS_PATH", ablation_path)
+    monkeypatch.setattr("app.report_assets.ALPHA_RESULTS_PATH", alpha_path)
+    monkeypatch.setattr("app.report_assets.CASE_STUDIES_PATH", case_path)
+    monkeypatch.setattr("app.final_evaluation_pack.MODE_COMPARISON_CASES_PATH", mode_path)
+    monkeypatch.setattr("app.final_evaluation_pack.HUMAN_EVAL_SUMMARY_PATH", summary_path)
+    monkeypatch.setattr("app.final_evaluation_pack.HUMAN_RATING_SHEET_PATH", human_sheet_path)
+    monkeypatch.setattr("app.final_evaluation_pack.HUMAN_RATING_SHEET_COMPLETED_PATH", completed_path)
 
 
 def test_text_detector_rule_based_returns_dict() -> None:
@@ -508,6 +723,74 @@ def test_human_eval_plotting_functions_create_output_files(tmp_path) -> None:
     assert (tmp_path / "helpfulness_summary_plot.png").exists()
     assert summary_path.endswith("human_eval_summary_plot.png")
     assert helpfulness_path.endswith("helpfulness_summary_plot.png")
+
+
+def test_build_report_result_tables_returns_dict(monkeypatch, tmp_path) -> None:
+    """Report builder should return the expected DataFrame dictionary."""
+
+    _patch_report_builder_inputs(monkeypatch, tmp_path)
+
+    tables = build_report_result_tables()
+
+    expected_keys = {
+        "ablation_table",
+        "alpha_table",
+        "case_study_table",
+        "mode_comparison_table",
+        "human_eval_summary_table",
+    }
+    assert expected_keys <= set(tables)
+    assert all(isinstance(table, pd.DataFrame) for table in tables.values())
+    assert not tables["human_eval_summary_table"].empty
+
+
+def test_summarize_for_conclusion_returns_dict(monkeypatch, tmp_path) -> None:
+    """Conclusion summary should describe the currently available result files."""
+
+    _patch_report_builder_inputs(monkeypatch, tmp_path)
+
+    summary = summarize_for_conclusion()
+
+    assert isinstance(summary, dict)
+    assert summary["number_of_experiment_cases"] == 2
+    assert summary["supported_modes"] == ["text_only", "face_only", "fused"]
+    assert summary["has_human_eval_summary"] is True
+    assert summary["has_case_studies"] is True
+    assert summary["has_alpha_sensitivity"] is True
+    assert len(summary["summary_points"]) == 5
+
+
+def test_export_report_tables_markdown_creates_file(monkeypatch, tmp_path) -> None:
+    """Report tables markdown should be written to disk."""
+
+    _patch_report_builder_inputs(monkeypatch, tmp_path)
+    output_path = tmp_path / "report_tables.md"
+
+    saved_path = export_report_tables_markdown(output_path=str(output_path))
+    content = output_path.read_text(encoding="utf-8")
+
+    assert output_path.exists()
+    assert saved_path.endswith("report_tables.md")
+    assert "# Report Tables" in content
+    assert "## Ablation Table" in content
+    assert "## Mode Comparison Table" in content
+
+
+def test_export_report_status_creates_file(monkeypatch, tmp_path) -> None:
+    """Report status markdown should be written to disk."""
+
+    _patch_report_builder_inputs(monkeypatch, tmp_path)
+    output_path = tmp_path / "report_status.md"
+
+    saved_path = export_report_status(output_path=str(output_path))
+    content = output_path.read_text(encoding="utf-8")
+
+    assert output_path.exists()
+    assert saved_path.endswith("report_status.md")
+    assert "# Report Status" in content
+    assert "## File Availability" in content
+    assert "## Complete Assets" in content
+    assert "No blocking manual steps remain" in content
 
 
 def test_fusion_returns_dict_and_string() -> None:

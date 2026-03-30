@@ -137,9 +137,9 @@ def main() -> None:
             "This prototype studies bimodal affective alignment by combining text "
             "and facial cues before generating a short supportive response."
         )
-        st.write("Current stage: Day 8 Prototype")
+        st.write("Current stage: Day 9 Prototype")
         st.caption(
-            "Day 8 uses a pretrained transformer-based text emotion module when available."
+            "Day 9 uses a pretrained transformer-based text emotion module when available."
         )
         st.caption(
             "Image-based facial analysis remains part of the prototype."
