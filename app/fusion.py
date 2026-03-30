@@ -1,4 +1,9 @@
-"""Weighted fusion utilities for combining text and face emotions."""
+"""Weighted fusion utilities for combining text and face emotions.
+
+The prototype uses a simple convex combination: `alpha` controls how much
+weight is assigned to the text modality, while `1 - alpha` controls the face
+modality. This keeps the fusion step transparent for research-style demos.
+"""
 
 from __future__ import annotations
 
@@ -12,6 +17,14 @@ def _aligned_probs(probs: dict[str, float]) -> dict[str, float]:
     """Return a probability dict aligned to the starter emotion order."""
 
     return {emotion: float(probs.get(emotion, 0.0)) for emotion in EMOTIONS}
+
+
+def get_top_n_emotions(probs: dict[str, float], n: int = 3) -> list[tuple[str, float]]:
+    """Return the top `n` emotions sorted from highest to lowest probability."""
+
+    n = max(0, int(n))
+    sorted_items = sorted(probs.items(), key=lambda item: (-item[1], item[0]))
+    return [(emotion, float(probability)) for emotion, probability in sorted_items[:n]]
 
 
 def fuse_emotions(
@@ -29,5 +42,5 @@ def fuse_emotions(
         emotion: alpha * text_probs[emotion] + (1.0 - alpha) * face_probs[emotion]
         for emotion in EMOTIONS
     }
-    top_emotion = max(EMOTIONS, key=lambda emotion: fused_probs[emotion])
+    top_emotion = get_top_n_emotions(fused_probs, n=1)[0][0]
     return fused_probs, top_emotion
