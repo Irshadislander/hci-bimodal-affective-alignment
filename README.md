@@ -40,8 +40,15 @@ pip install -r requirements.txt
 - The table is designed for report writing and presentation examples.
 - Each row includes the text, text emotion, face emotion, fused emotion, and empathetic response.
 
+## Generating Report Assets
+- Run the evaluation tools first so the CSVs exist in `experiments/`.
+- Load the saved CSVs with `app.report_assets` to compute a short report summary.
+- Use `app.plot_results` to generate the report-ready PNG plots in `experiments/`.
+- The first serious report draft is saved at `docs/final_report_draft.md`.
+
 ## CSV Outputs
 - Ablation results are saved to `experiments/ablation_results.csv`
 - Alpha sensitivity results are saved to `experiments/alpha_sensitivity.csv`
 - Human evaluation templates are saved to `experiments/human_eval_template.csv`
 - Case study tables are saved to `experiments/case_studies.csv`
+- Plot outputs are saved to `experiments/ablation_counts.png`, `experiments/alpha_sensitivity_plot.png`, and `experiments/case_type_distribution.png`

@@ -1,0 +1,11 @@
+case_id,user_text,text_top_emotion,face_top_emotion,fused_top_emotion,response,empathy_rating,social_presence_rating,trust_rating,notes
+1,I am thrilled with the result and feel genuinely happy.,happy,happy,happy,I am picking up a positive tone here.,,,,
+2,I feel sad and drained after losing the opportunity.,sad,sad,sad,I am sorry this feels hard. We can take it step by step.,,,,
+3,I am furious that the system keeps crashing.,angry,angry,angry,That sounds tense. We can work through it carefully.,,,,
+4,I am nervous about the interview tomorrow.,fear,fear,fear,That sounds uncertain. I can help make the next step feel safer.,,,,
+5,"Wow, I did not expect that announcement at all.",surprise,surprise,surprise,That feels unexpected. I can help unpack it.,,,,
+6,"I am thrilled with the result, but the room felt gloomy to me.",neutral,sad,neutral,Understood. I will stay focused and supportive.,,,,
+7,"I feel sad and drained after losing the opportunity, even though everyone looks upbeat.",sad,happy,happy,That sounds positive. I am glad it is going well.,,,,
+8,"I am angry about the delay, but the room feels calm and neutral.",angry,neutral,neutral,Understood. I will stay focused and supportive.,,,,
+9,"I am okay, just checking in and moving through the day.",neutral,neutral,neutral,Understood. I will stay focused and supportive.,,,,
+10,"Part of me feels hopeful, part of me feels tired.",neutral,neutral,neutral,That seems steady. I can help with the next step.,,,,

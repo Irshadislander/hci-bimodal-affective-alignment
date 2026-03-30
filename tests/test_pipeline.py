@@ -1,8 +1,10 @@
-"""Smoke tests for the Day 5 emotion pipeline."""
+"""Smoke tests for the Day 7 emotion pipeline."""
 
 from __future__ import annotations
 
 from math import isclose
+
+import pandas as pd
 
 from app.evaluation import evaluate_case
 from app.case_studies import (
@@ -21,6 +23,12 @@ from app.human_eval import (
     make_human_eval_template,
     save_human_eval_template,
 )
+from app.plot_results import (
+    plot_ablation_counts,
+    plot_alpha_sensitivity,
+    plot_case_type_distribution,
+)
+from app.report_assets import summarize_results_for_report
 from app.response_generator import generate_response
 from app.text_emotion import (
     EMOTIONS,
@@ -234,6 +242,101 @@ def test_human_eval_template_returns_dataframe(monkeypatch, tmp_path) -> None:
     assert first_row["trust_rating"] == ""
     assert (tmp_path / "human_eval_template.csv").exists()
     assert saved_path.endswith("human_eval_template.csv")
+
+
+def test_report_asset_summary_returns_dict(monkeypatch, tmp_path) -> None:
+    """Report asset summary should return a dictionary of simple highlights."""
+
+    ablation_df = pd.DataFrame(
+        [
+            {
+                "case_id": 1,
+                "user_text": "I am happy.",
+                "alpha": 0.5,
+                "fused_top_emotion": "happy",
+            },
+            {
+                "case_id": 2,
+                "user_text": "I am sad.",
+                "alpha": 0.5,
+                "fused_top_emotion": "sad",
+            },
+        ]
+    )
+    alpha_df = pd.DataFrame(
+        [
+            {"case_id": 1, "alpha": 0.0, "fused_top_emotion": "neutral"},
+            {"case_id": 1, "alpha": 0.5, "fused_top_emotion": "happy"},
+            {"case_id": 1, "alpha": 1.0, "fused_top_emotion": "happy"},
+        ]
+    )
+    case_df = pd.DataFrame(
+        [
+            {"case_id": 1, "user_text": "A", "fused_top_emotion": "happy", "case_type": "Congruent"},
+            {"case_id": 2, "user_text": "B", "fused_top_emotion": "sad", "case_type": "Dissonant"},
+            {"case_id": 3, "user_text": "C", "fused_top_emotion": "neutral", "case_type": "Ambiguous"},
+        ]
+    )
+
+    ablation_path = tmp_path / "ablation_results.csv"
+    alpha_path = tmp_path / "alpha_sensitivity.csv"
+    case_path = tmp_path / "case_studies.csv"
+    ablation_df.to_csv(ablation_path, index=False)
+    alpha_df.to_csv(alpha_path, index=False)
+    case_df.to_csv(case_path, index=False)
+
+    monkeypatch.setattr("app.report_assets.ABLATION_RESULTS_PATH", ablation_path)
+    monkeypatch.setattr("app.report_assets.ALPHA_RESULTS_PATH", alpha_path)
+    monkeypatch.setattr("app.report_assets.CASE_STUDIES_PATH", case_path)
+
+    summary = summarize_results_for_report()
+
+    assert isinstance(summary, dict)
+    assert summary["number_of_cases"] == 3
+    assert sorted(summary["unique_fused_emotions"]) == ["happy", "neutral", "sad"]
+    assert summary["alpha_values_used"] == [0.0, 0.5, 1.0]
+    assert summary["case_type_counts"] == {
+        "Congruent": 1,
+        "Dissonant": 1,
+        "Ambiguous": 1,
+    }
+
+
+def test_plotting_functions_create_output_files(tmp_path) -> None:
+    """Plot helpers should write PNG files for simple DataFrames."""
+
+    ablation_df = pd.DataFrame(
+        [
+            {"fused_top_emotion": "happy"},
+            {"fused_top_emotion": "sad"},
+            {"fused_top_emotion": "happy"},
+        ]
+    )
+    alpha_df = pd.DataFrame(
+        [
+            {"alpha": 0.0, "fused_top_emotion": "neutral"},
+            {"alpha": 0.5, "fused_top_emotion": "happy"},
+            {"alpha": 1.0, "fused_top_emotion": "happy"},
+        ]
+    )
+    case_df = pd.DataFrame(
+        [
+            {"case_type": "Congruent"},
+            {"case_type": "Dissonant"},
+            {"case_type": "Ambiguous"},
+        ]
+    )
+
+    ablation_path = plot_ablation_counts(ablation_df, output_path=tmp_path / "ablation_counts.png")
+    alpha_path = plot_alpha_sensitivity(alpha_df, output_path=tmp_path / "alpha_sensitivity_plot.png")
+    case_path = plot_case_type_distribution(case_df, output_path=tmp_path / "case_type_distribution.png")
+
+    assert (tmp_path / "ablation_counts.png").exists()
+    assert (tmp_path / "alpha_sensitivity_plot.png").exists()
+    assert (tmp_path / "case_type_distribution.png").exists()
+    assert ablation_path.endswith("ablation_counts.png")
+    assert alpha_path.endswith("alpha_sensitivity_plot.png")
+    assert case_path.endswith("case_type_distribution.png")
 
 
 def test_fusion_returns_dict_and_string() -> None:

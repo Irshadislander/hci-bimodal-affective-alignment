@@ -1,102 +1,86 @@
-# HCI Bimodal Affective Alignment
+# Report Outline
 
 ## Title
-- Working title: HCI Bimodal Affective Alignment
-- Optional subtitle: A mini research prototype for multimodal emotion-aware interaction
+- Confirm the final paper title and subtitle.
+- Decide how to frame the prototype as a course-project contribution.
+- Keep the title aligned with the report draft and presentation.
 
 ## Abstract
-- One-paragraph summary of the problem, method, prototype design, and early findings
-- Mention text emotion recognition, facial emotion simulation, weighted fusion, and response generation
+- State the problem, the bimodal approach, and the main evaluation artifacts.
+- Mention text emotion, face emotion, fusion, and empathetic response generation.
+- Note that the report is a draft backed by generated CSVs and plots.
 
-## Introduction
-- Motivation for emotion-aware interaction in HCI
-- Why combining textual and facial affect can improve system responsiveness
-- Scope of the prototype and what is intentionally left for later work
+## 1. Introduction and Motivation
+- Why does emotion-aware interaction matter in HCI?
+- Why are text and facial cues useful together?
+- What makes this project a small but meaningful research prototype?
 
-## Research Question
-- Primary question: Can simple multimodal affect fusion improve perceived empathy in a prototype interaction?
-- Secondary question: How does weighting text versus face affect the fused prediction?
+## 2. Research Question
+- Write the main question in one sentence.
+- Add the alpha-sensitivity subquestion.
+- Explain why the question fits a mini research project.
 
-## Related Work
-- Emotion recognition from text
-- Facial affect recognition in HCI
-- Multimodal fusion strategies
-- Empathetic response generation systems
+## 3. System Overview
+- Describe the end-to-end pipeline from input to response.
+- Summarize the role of the Streamlit interface.
+- Mention the report-ready experimental workflow.
 
-## Methodology
-- Describe the rule-based text detector
-- Describe the simulated facial emotion module
-- Describe the weighted fusion scheme
-- Describe the response generator and demo workflow
+## 4. Technical Methodology
+- Describe the text emotion path and fallback behavior.
+- Describe the image-based face emotion path and fallback behavior.
+- Explain how probabilities are normalized before fusion.
 
-## System Architecture
-- Input: user text and simulated facial signal
-- Processing: emotion scoring, probability normalization, fusion
-- Output: top emotion and short empathetic response
+## 5. Fusion Strategy
+- Write the weighted fusion equation.
+- Explain what alpha means in practice.
+- Compare text-only, face-only, and bimodal settings.
 
-## Fusion Equation
-- `Fused(e) = alpha * Text(e) + (1 - alpha) * Face(e)`
-- `Top emotion = argmax_e Fused(e)`
-- Discuss the interpretation of `alpha`
+## 6. System Implementation
+- List the main modules in the codebase.
+- Explain how CSVs and plots are saved under `experiments/`.
+- Mention the separation between demo logic and evaluation logic.
 
-## Experiments
-- Qualitative demo runs across several example inputs
-- Alpha sensitivity checks
-- Comparison of text-only, face-only, and fused outputs
+## 7. Experimental Setup
+- Describe the ablation study inputs and outputs.
+- Describe the alpha sensitivity sweep.
+- Describe the case-study and human-evaluation artifacts.
 
-## Ablation Study
-- Compare text-only, face-only, and bimodal fusion outputs on the same case set
-- Report when fusion improves the top emotion versus when it does not
-- Use alpha values `1.0`, `0.0`, and `0.5` to frame the ablation discussion
-- Include a short table or figure with representative case-level predictions
-- State what the ablation does and does not prove about the prototype
+## 8. Ablation Study
+- Explain what text-only, face-only, and fused outputs show.
+- Identify which plot or table will appear here.
+- Note that results will be inserted from the generated experiment CSVs.
 
-## Alpha Sensitivity
-- Describe the alpha grid used in the prototype evaluation
-- Explain how changing alpha shifts the fused emotion toward text or face signals
-- Summarize stable cases versus sensitive cases
-- Report whether certain emotions are dominated by one modality
-- Include one plot or compact table showing the alpha trend
+## 9. Alpha Sensitivity
+- Explain how the alpha grid changes the fused result.
+- Describe the intended plot for this section.
+- Note which cases are stable or sensitive to weighting.
 
-## Case Studies
-- Which 2 to 4 cases best represent congruent, dissonant, and ambiguous signals?
-- For each case, what are the text, face, fused, and response outputs?
-- Why is the chosen case interesting for the paper or slide deck?
-- Does the fused emotion match the intended interpretation of the case?
-- What makes the response feel supportive or mismatched in that example?
-- How do these examples help the reader understand the research question?
+## 10. Human Evaluation Plan
+- Explain the empathy, social presence, and trust scales.
+- Describe who rates the outputs and how the template is used.
+- State how this compares the three modality settings.
 
-## Human Evaluation Plan
-- Who will review the outputs, and what is the expected participant profile?
-- What task will participants perform when rating a case?
-- How will empathy, social presence, and trust be scored on the 1-5 scale?
-- How many cases will each participant see, and in what order?
-- Will the evaluation compare text-only, face-only, and fused outputs side by side?
-- What consent, privacy, and anonymity notes are needed for a course project setting?
+## 11. Case Studies
+- Describe how congruent, dissonant, and ambiguous cases are selected.
+- State where the case-study table will be shown.
+- Explain how the examples support the report narrative.
 
-## Results and Discussion
-- What patterns appear across the ablation and alpha-sensitivity tables?
-- When does text dominate the fused result, and when does face dominate?
-- Which cases look most stable across alpha values?
-- Which cases are sensitive to small changes in alpha, and why?
-- What do the case studies reveal about congruent versus dissonant signals?
-- What behavior should be highlighted as a strength of the prototype versus a limitation?
+## 12. Results and Discussion
+- Summarize patterns from the generated CSVs and plots.
+- Explain when fusion helps and when it does not.
+- Add the key interpretation of the case-study examples.
 
-## Limitations
-- Which parts of the system are still simulated or approximate?
-- Where can the transformer or face pipeline fail in practice?
-- What kinds of emotion or context are still hard for the prototype?
-- How do missing faces, ambiguous text, or conflicting signals affect results?
-- Why do these limitations matter for interpreting the evaluation results?
+## 13. Limitations
+- Name the current technical limitations clearly.
+- State the evaluation limitations and scope.
+- Explain what the prototype does not claim.
 
-## Future Work
-- Replace text heuristics with a trained model
-- Replace the simulated face module with webcam inference
-- Add calibration and confidence visualization
-- Run a larger human evaluation
+## 14. Future Work
+- List the next modeling upgrades.
+- List the next evaluation upgrades.
+- Mention future improvements to calibration and interaction.
 
-## Conclusion
-- What is the main takeaway from the prototype evaluation?
-- How did the fusion strategy help, and where did it not help?
-- What does the case-study workflow show about congruent versus dissonant signals?
-- How should readers interpret the project as a research scaffold rather than a finished system?
+## 15. Conclusion
+- Restate the main contribution.
+- Explain the value of the prototype as a research scaffold.
+- End with the clearest take-away for the course project.
