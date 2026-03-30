@@ -16,3 +16,7 @@ pip install -r requirements.txt
 
 ## Run
 ./run.sh
+
+## Facial Input
+- Upload a face image in the Streamlit app to run image-based facial emotion analysis.
+- If no image is uploaded, the app uses a safe neutral fallback distribution for the face signal.
