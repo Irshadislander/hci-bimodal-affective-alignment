@@ -1,4 +1,4 @@
-"""Smoke tests for the Day 7 emotion pipeline."""
+"""Smoke tests for the Day 8 emotion pipeline."""
 
 from __future__ import annotations
 
@@ -10,6 +10,12 @@ from app.evaluation import evaluate_case
 from app.case_studies import (
     DEFAULT_CASE_STUDIES,
     generate_case_study_table,
+)
+from app.final_evaluation_pack import (
+    aggregate_human_ratings,
+    build_human_rating_sheet,
+    build_mode_comparison_cases,
+    validate_completed_human_ratings,
 )
 from app.experiment_runner import (
     DEFAULT_CASES,
@@ -27,6 +33,8 @@ from app.plot_results import (
     plot_ablation_counts,
     plot_alpha_sensitivity,
     plot_case_type_distribution,
+    plot_helpfulness_summary,
+    plot_human_eval_summary,
 )
 from app.report_assets import summarize_results_for_report
 from app.response_generator import generate_response
@@ -68,6 +76,31 @@ def _table_length(table) -> int:
     """Return row count for either a pandas DataFrame or a row list."""
 
     return len(table)
+
+
+def _patch_final_evaluation_pack(monkeypatch, tmp_path) -> None:
+    """Redirect final-evaluation outputs to a temporary directory."""
+
+    monkeypatch.setattr(
+        "app.final_evaluation_pack.detect_text_emotion",
+        lambda text: _sample_probs(),
+    )
+    monkeypatch.setattr(
+        "app.final_evaluation_pack.generate_response",
+        lambda user_text, emotion: f"{emotion}: {user_text[:24]}",
+    )
+    monkeypatch.setattr(
+        "app.final_evaluation_pack.MODE_COMPARISON_CASES_PATH",
+        tmp_path / "mode_comparison_cases.csv",
+    )
+    monkeypatch.setattr(
+        "app.final_evaluation_pack.HUMAN_RATING_SHEET_PATH",
+        tmp_path / "human_rating_sheet.csv",
+    )
+    monkeypatch.setattr(
+        "app.final_evaluation_pack.HUMAN_EVAL_SUMMARY_PATH",
+        tmp_path / "human_eval_summary.csv",
+    )
 
 
 def test_text_detector_rule_based_returns_dict() -> None:
@@ -244,6 +277,103 @@ def test_human_eval_template_returns_dataframe(monkeypatch, tmp_path) -> None:
     assert saved_path.endswith("human_eval_template.csv")
 
 
+def test_build_mode_comparison_cases_returns_dataframe(monkeypatch, tmp_path) -> None:
+    """Mode comparison cases should return a table with text, face, and fused rows."""
+
+    _patch_final_evaluation_pack(monkeypatch, tmp_path)
+
+    df = build_mode_comparison_cases(alpha=0.5)
+
+    expected_columns = {
+        "case_id",
+        "user_text",
+        "text_top_emotion",
+        "face_top_emotion",
+        "fused_top_emotion",
+        "text_only_response",
+        "face_only_response",
+        "fused_response",
+        "case_type",
+    }
+    assert _table_length(df) == len(DEFAULT_CASE_STUDIES)
+    assert expected_columns <= set(_table_columns(df))
+    assert (tmp_path / "mode_comparison_cases.csv").exists()
+
+
+def test_build_human_rating_sheet_returns_dataframe(monkeypatch, tmp_path) -> None:
+    """Human rating sheets should return long-form comparison rows."""
+
+    _patch_final_evaluation_pack(monkeypatch, tmp_path)
+
+    df = build_human_rating_sheet(alpha=0.5)
+
+    expected_columns = {
+        "rater_id",
+        "case_id",
+        "case_type",
+        "user_text",
+        "mode",
+        "detected_emotion",
+        "system_response",
+        "empathy_rating",
+        "social_presence_rating",
+        "trust_rating",
+        "helpfulness_rating",
+        "notes",
+    }
+    assert _table_length(df) == len(DEFAULT_CASE_STUDIES) * 3
+    assert expected_columns <= set(_table_columns(df))
+    rows = df.to_dict(orient="records") if hasattr(df, "to_dict") else list(df)
+    first_row = rows[0]
+    assert first_row["rater_id"] == ""
+    assert first_row["empathy_rating"] == ""
+    assert first_row["helpfulness_rating"] == ""
+    assert (tmp_path / "human_rating_sheet.csv").exists()
+
+
+def test_validate_completed_human_ratings_handles_missing_file(tmp_path) -> None:
+    """Validation should return a safe report when the completed file is absent."""
+
+    missing_path = tmp_path / "human_rating_sheet_completed.csv"
+
+    report = validate_completed_human_ratings(str(missing_path))
+
+    assert report["file_exists"] is False
+    assert report["status"] == "missing_file"
+    assert report["total_rows"] == 0
+    assert report["completed_rows"] == 0
+    assert set(report["missing_columns"]) == {
+        "rater_id",
+        "case_id",
+        "case_type",
+        "user_text",
+        "mode",
+        "detected_emotion",
+        "system_response",
+        "empathy_rating",
+        "social_presence_rating",
+        "trust_rating",
+        "helpfulness_rating",
+        "notes",
+    }
+
+
+def test_aggregate_human_ratings_handles_missing_file(monkeypatch, tmp_path) -> None:
+    """Aggregation should return a blank summary when no completed file exists."""
+
+    missing_path = tmp_path / "human_rating_sheet_completed.csv"
+    monkeypatch.setattr(
+        "app.final_evaluation_pack.HUMAN_EVAL_SUMMARY_PATH",
+        tmp_path / "human_eval_summary.csv",
+    )
+
+    summary_dict, summary_df = aggregate_human_ratings(str(missing_path))
+
+    assert summary_dict["status"] == "missing_file"
+    assert summary_df.empty
+    assert (tmp_path / "human_eval_summary.csv").exists()
+
+
 def test_report_asset_summary_returns_dict(monkeypatch, tmp_path) -> None:
     """Report asset summary should return a dictionary of simple highlights."""
 
@@ -337,6 +467,47 @@ def test_plotting_functions_create_output_files(tmp_path) -> None:
     assert ablation_path.endswith("ablation_counts.png")
     assert alpha_path.endswith("alpha_sensitivity_plot.png")
     assert case_path.endswith("case_type_distribution.png")
+
+
+def test_human_eval_plotting_functions_create_output_files(tmp_path) -> None:
+    """Human-evaluation plot helpers should write PNG files for simple summaries."""
+
+    summary_df = pd.DataFrame(
+        [
+            {
+                "mode": "text_only",
+                "completed_rows": 6,
+                "empathy_rating_mean": 3.0,
+                "social_presence_rating_mean": 2.8,
+                "trust_rating_mean": 3.1,
+                "helpfulness_rating_mean": 3.2,
+            },
+            {
+                "mode": "face_only",
+                "completed_rows": 6,
+                "empathy_rating_mean": 2.7,
+                "social_presence_rating_mean": 2.6,
+                "trust_rating_mean": 2.8,
+                "helpfulness_rating_mean": 2.9,
+            },
+            {
+                "mode": "fused",
+                "completed_rows": 6,
+                "empathy_rating_mean": 3.5,
+                "social_presence_rating_mean": 3.4,
+                "trust_rating_mean": 3.6,
+                "helpfulness_rating_mean": 3.7,
+            },
+        ]
+    )
+
+    summary_path = plot_human_eval_summary(summary_df, output_path=tmp_path / "human_eval_summary_plot.png")
+    helpfulness_path = plot_helpfulness_summary(summary_df, output_path=tmp_path / "helpfulness_summary_plot.png")
+
+    assert (tmp_path / "human_eval_summary_plot.png").exists()
+    assert (tmp_path / "helpfulness_summary_plot.png").exists()
+    assert summary_path.endswith("human_eval_summary_plot.png")
+    assert helpfulness_path.endswith("helpfulness_summary_plot.png")
 
 
 def test_fusion_returns_dict_and_string() -> None:

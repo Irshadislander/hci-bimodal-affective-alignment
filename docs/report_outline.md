@@ -2,18 +2,18 @@
 
 ## Title
 - Confirm the final paper title and subtitle.
-- Decide how to frame the prototype as a course-project contribution.
+- Frame the project as a mini research prototype in HCI.
 - Keep the title aligned with the report draft and presentation.
 
 ## Abstract
-- State the problem, the bimodal approach, and the main evaluation artifacts.
+- State the problem, the bimodal approach, and the evaluation workflow.
 - Mention text emotion, face emotion, fusion, and empathetic response generation.
-- Note that the report is a draft backed by generated CSVs and plots.
+- Note that the paper is backed by generated CSVs, plots, and case studies.
 
 ## 1. Introduction and Motivation
 - Why does emotion-aware interaction matter in HCI?
 - Why are text and facial cues useful together?
-- What makes this project a small but meaningful research prototype?
+- What makes this project a meaningful course-project prototype?
 
 ## 2. Research Question
 - Write the main question in one sentence.
@@ -56,31 +56,41 @@
 - Note which cases are stable or sensitive to weighting.
 
 ## 10. Human Evaluation Plan
-- Explain the empathy, social presence, and trust scales.
-- Describe who rates the outputs and how the template is used.
-- State how this compares the three modality settings.
+- What dimensions should raters score and why?
+- How will the empathy, social presence, trust, and helpfulness scales be described?
+- Who are the raters, and what instructions will they receive?
+- How will text-only, face-only, and fused outputs be compared?
+- Which CSV template collects the ratings?
+- What will the report say if completed ratings are available or unavailable?
 
 ## 11. Case Studies
-- Describe how congruent, dissonant, and ambiguous cases are selected.
-- State where the case-study table will be shown.
-- Explain how the examples support the report narrative.
+- How are congruent, dissonant, and ambiguous cases selected?
+- Which examples best illustrate multimodal alignment?
+- What should the case-study table communicate about the system?
+- Which response patterns are worth highlighting in the write-up?
+- How do the case studies support the report narrative?
 
 ## 12. Results and Discussion
-- Summarize patterns from the generated CSVs and plots.
-- Explain when fusion helps and when it does not.
-- Add the key interpretation of the case-study examples.
+- What patterns appear in the ablation and alpha-sensitivity outputs?
+- When does fusion improve over the unimodal baselines?
+- Where do the modalities disagree, and what does that reveal?
+- What do the case studies suggest about the response generator?
+- How should the team interpret mixed or weak results?
 
 ## 13. Limitations
-- Name the current technical limitations clearly.
-- State the evaluation limitations and scope.
-- Explain what the prototype does not claim.
+- What is still simulated or fallback-based?
+- What are the evaluation and data-collection limitations?
+- What kinds of errors or bias remain?
+- What is clearly out of scope for this prototype?
 
 ## 14. Future Work
-- List the next modeling upgrades.
-- List the next evaluation upgrades.
-- Mention future improvements to calibration and interaction.
+- What is the next model upgrade for text or face analysis?
+- What is the next interaction upgrade for the demo?
+- How could the evaluation be strengthened?
+- What additional modalities or datasets would be useful?
 
 ## 15. Conclusion
-- Restate the main contribution.
-- Explain the value of the prototype as a research scaffold.
-- End with the clearest take-away for the course project.
+- What is the single strongest takeaway?
+- How does the project serve as a research scaffold?
+- Why is this a meaningful HCI prototype?
+- What final sentence should close the paper?

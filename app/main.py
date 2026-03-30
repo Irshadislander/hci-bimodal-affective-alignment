@@ -18,6 +18,16 @@ try:
         CASE_STUDIES_OUTPUT_PATH,
         generate_case_study_table,
     )
+    from app.final_evaluation_pack import (
+        HUMAN_EVAL_SUMMARY_PATH,
+        HUMAN_RATING_SHEET_COMPLETED_PATH,
+        HUMAN_RATING_SHEET_PATH,
+        MODE_COMPARISON_CASES_PATH,
+        aggregate_human_ratings,
+        build_human_rating_sheet,
+        build_mode_comparison_cases,
+        validate_completed_human_ratings,
+    )
     from app.human_eval import (
         HUMAN_EVAL_TEMPLATE_PATH,
         make_human_eval_template,
@@ -29,6 +39,7 @@ try:
         detect_text_emotion,
         get_text_emotion_backend_status,
     )
+    from app.plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from app.utils import probs_to_dataframe
 except ImportError:  # pragma: no cover - supports running from app/ directly
     from face_emotion import detect_face_emotion_from_image, get_face_analysis_warning
@@ -40,6 +51,16 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
         run_alpha_sensitivity,
     )
     from case_studies import CASE_STUDIES_OUTPUT_PATH, generate_case_study_table
+    from final_evaluation_pack import (
+        HUMAN_EVAL_SUMMARY_PATH,
+        HUMAN_RATING_SHEET_COMPLETED_PATH,
+        HUMAN_RATING_SHEET_PATH,
+        MODE_COMPARISON_CASES_PATH,
+        aggregate_human_ratings,
+        build_human_rating_sheet,
+        build_mode_comparison_cases,
+        validate_completed_human_ratings,
+    )
     from human_eval import (
         HUMAN_EVAL_TEMPLATE_PATH,
         make_human_eval_template,
@@ -48,6 +69,7 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
     from fusion import get_top_n_emotions, fuse_emotions
     from response_generator import generate_response
     from text_emotion import detect_text_emotion, get_text_emotion_backend_status
+    from plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from utils import probs_to_dataframe
 
 DEFAULT_TEXT = "I am okay, but a little tired."
@@ -104,10 +126,9 @@ def main() -> None:
 
     st.title("HCI Bimodal Affective Alignment")
     st.write(
-        "A mini research-style prototype that combines text emotion recognition, "
-        "pretrained transformer-based text emotion recognition when available, "
-        "image-based facial emotion recognition, weighted fusion, and empathetic "
-        "response generation."
+        "A mini research-style prototype that combines transformer-based text emotion recognition "
+        "with a rule-based fallback, image-based facial emotion recognition, weighted fusion, "
+        "and empathetic response generation."
     )
 
     with st.sidebar:
@@ -116,9 +137,9 @@ def main() -> None:
             "This prototype studies bimodal affective alignment by combining text "
             "and facial cues before generating a short supportive response."
         )
-        st.write("Current stage: Day 7 Prototype")
+        st.write("Current stage: Day 8 Prototype")
         st.caption(
-            "Day 7 uses a pretrained transformer-based text emotion module when available."
+            "Day 8 uses a pretrained transformer-based text emotion module when available."
         )
         st.caption(
             "Image-based facial analysis remains part of the prototype."
@@ -244,6 +265,44 @@ def main() -> None:
             case_study_table = generate_case_study_table(alpha=0.5)
             st.success(f"Saved case study table to {CASE_STUDIES_OUTPUT_PATH}")
             st.dataframe(case_study_table, width="stretch")
+
+    st.divider()
+    st.subheader("Final Human Evaluation Pack")
+    st.info(
+        "Ask 4-8 people to rate empathy, social presence, trust, and helpfulness on a 1-5 scale. "
+        "Fused mode is the main system; text_only and face_only are comparison baselines."
+    )
+
+    final_col1, final_col2, final_col3 = st.columns(3)
+    with final_col1:
+        if st.button("Generate Mode Comparison Cases", key="generate_mode_comparison_cases"):
+            comparison_df = build_mode_comparison_cases(alpha=0.5)
+            st.success(f"Saved mode comparison cases to {MODE_COMPARISON_CASES_PATH}")
+            st.dataframe(comparison_df, width="stretch")
+    with final_col2:
+        if st.button("Generate Human Rating Sheet", key="generate_human_rating_sheet"):
+            rating_df = build_human_rating_sheet(alpha=0.5)
+            st.success(f"Saved human rating sheet to {HUMAN_RATING_SHEET_PATH}")
+            st.dataframe(rating_df, width="stretch")
+    with final_col3:
+        if st.button("Aggregate Completed Human Ratings", key="aggregate_completed_human_ratings"):
+            completed_path = HUMAN_RATING_SHEET_COMPLETED_PATH
+            if not completed_path.exists():
+                st.warning(
+                    f"No completed human-rating file found at {completed_path}. "
+                    "A blank summary and placeholder plots will be generated."
+                )
+            validation_report = validate_completed_human_ratings(str(completed_path))
+            summary_dict, summary_df = aggregate_human_ratings(str(completed_path))
+            st.success(f"Saved human evaluation summary to {HUMAN_EVAL_SUMMARY_PATH}")
+            st.caption(f"Aggregation status: {summary_dict.get('status')}")
+            st.json(validation_report)
+            st.dataframe(summary_df, width="stretch")
+            summary_plot_path = plot_human_eval_summary(summary_df)
+            helpfulness_plot_path = plot_helpfulness_summary(summary_df)
+            st.caption(
+                f"Saved plots to {summary_plot_path} and {helpfulness_plot_path}"
+            )
 
 
 if __name__ == "__main__":

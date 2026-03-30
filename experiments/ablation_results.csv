@@ -1,13 +1,13 @@
 case_id,user_text,alpha,text_top_emotion,text_top_probability,face_top_emotion,face_top_probability,fused_top_emotion,fused_top_probability,text_only_top_emotion,face_only_top_emotion,empathetic_response
-1,I am really happy with how this turned out.,0.5,happy,0.4262295081967213,neutral,0.62,neutral,0.4329508196721311,happy,neutral,That seems steady. I can help with the next step.
-2,Today felt rough and I am still sad about it.,0.5,sad,0.4262295081967213,neutral,0.62,neutral,0.4329508196721311,sad,neutral,That seems steady. I can help with the next step.
+1,I am really happy with how this turned out.,0.5,happy,0.4262295081967213,neutral,0.62,neutral,0.4329508196721311,happy,neutral,Understood. I will stay focused and supportive.
+2,Today felt rough and I am still sad about it.,0.5,sad,0.4262295081967213,neutral,0.62,neutral,0.4329508196721311,sad,neutral,Understood. I will stay focused and supportive.
 3,I am frustrated because the system keeps failing.,0.5,angry,0.4166666666666667,neutral,0.62,neutral,0.435,angry,neutral,Understood. I will stay focused and supportive.
 4,"I feel okay, just checking in for now.",0.5,neutral,0.738095238095238,neutral,0.62,neutral,0.679047619047619,neutral,neutral,That seems steady. I can help with the next step.
 5,I am nervous about the presentation tomorrow.,0.5,fear,0.396551724137931,neutral,0.62,neutral,0.43931034482758624,fear,neutral,"I am getting a neutral signal, so I will keep this practical."
-6,"Wow, I did not expect that result at all.",0.5,surprise,0.33962264150943394,neutral,0.62,neutral,0.4515094339622642,surprise,neutral,That seems steady. I can help with the next step.
-7,That smelled gross and made me uncomfortable.,0.5,disgust,0.396551724137931,neutral,0.62,neutral,0.43931034482758624,disgust,neutral,Thanks for sharing. I will keep this clear and concise.
-8,I am excited and relieved after finishing the task.,0.5,happy,0.5070422535211268,neutral,0.62,neutral,0.41563380281690143,happy,neutral,That seems steady. I can help with the next step.
-9,"It is a mixed day: part of me feels hopeful, part of me feels tired.",0.5,neutral,0.5,neutral,0.62,neutral,0.56,neutral,neutral,That seems steady. I can help with the next step.
-10,"I am angry, but also a little worried about what comes next.",0.5,angry,0.32530120481927705,neutral,0.62,neutral,0.4003614457831325,angry,neutral,Understood. I will stay focused and supportive.
-11,The meeting was fine and nothing unusual happened.,0.5,neutral,0.6301369863013698,neutral,0.62,neutral,0.6250684931506849,neutral,neutral,"I am getting a neutral signal, so I will keep this practical."
-12,"I feel a bit disappointed, but I can recover from it.",0.5,sad,0.3859649122807018,neutral,0.62,neutral,0.44157894736842107,sad,neutral,Understood. I will stay focused and supportive.
+6,"Wow, I did not expect that result at all.",0.5,surprise,0.33962264150943394,neutral,0.62,neutral,0.4515094339622642,surprise,neutral,Understood. I will stay focused and supportive.
+7,That smelled gross and made me uncomfortable.,0.5,disgust,0.396551724137931,neutral,0.62,neutral,0.43931034482758624,disgust,neutral,Understood. I will stay focused and supportive.
+8,I am excited and relieved after finishing the task.,0.5,happy,0.5070422535211268,neutral,0.62,neutral,0.41563380281690143,happy,neutral,Thanks for sharing. I will keep this clear and concise.
+9,"It is a mixed day: part of me feels hopeful, part of me feels tired.",0.5,neutral,0.5,neutral,0.62,neutral,0.56,neutral,neutral,Thanks for sharing. I will keep this clear and concise.
+10,"I am angry, but also a little worried about what comes next.",0.5,angry,0.32530120481927705,neutral,0.62,neutral,0.4003614457831325,angry,neutral,Thanks for sharing. I will keep this clear and concise.
+11,The meeting was fine and nothing unusual happened.,0.5,neutral,0.6301369863013698,neutral,0.62,neutral,0.6250684931506849,neutral,neutral,Understood. I will stay focused and supportive.
+12,"I feel a bit disappointed, but I can recover from it.",0.5,sad,0.3859649122807018,neutral,0.62,neutral,0.44157894736842107,sad,neutral,"I am getting a neutral signal, so I will keep this practical."
