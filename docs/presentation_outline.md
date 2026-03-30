@@ -55,20 +55,28 @@
 - Mention the default alpha choices used in the prototype
 - Explain how this informs weighting decisions
 
-## 13. Case Study
-- Walk through one representative example end-to-end
+## 13. Human Evaluation
+- Explain the 1-5 rating scheme for empathy, social presence, and trust
+- Show the human-evaluation template and how reviewers will use it
+- Describe how the template supports a small course-project study
+- Mention what reviewers should look for when comparing modalities
+
+## 14. Case Study Examples
+- Walk through one congruent case, one dissonant case, and one ambiguous case
 - Show the input text, image signal, fused output, and response
-- Briefly explain why the response is appropriate
-- Use this slide to make the prototype feel concrete
+- Explain why each case is interesting for the report
+- Use this slide to make the prototype behavior concrete
+- Point out which examples are strongest for the final paper
 
-## 14. Results
-- Example outputs from the evaluation workflow
-- Observed effect of alpha changes
-- Key ablation findings
-- Short summary of the strongest case-study examples
-- Brief note on the current limitations and the human-evaluation plan
+## 15. Results Discussion
+- Summarize the ablation outputs and what they show about fusion
+- Show the alpha-sensitivity trend and describe the key takeaway
+- Explain how the case studies support or challenge the main claim
+- Mention the human-evaluation workflow as the next step for validation
+- Note the main limitations that remain in the current prototype
 
-## 15. Conclusion
-- Main takeaway
-- Why the prototype is a useful research scaffold
-- What the next iteration should improve
+## 16. Final Conclusion
+- State the main takeaway in one sentence
+- Reiterate why bimodal affective alignment is useful in HCI
+- Explain why this prototype is a research scaffold, not a finished product
+- End with the clearest next step for the project

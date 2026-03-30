@@ -59,31 +59,35 @@
 - Include one plot or compact table showing the alpha trend
 
 ## Case Studies
-- Select 2 to 4 interesting examples that show clear success or failure modes
-- Show the input text, text prediction, face prediction, fused prediction, and response
-- Explain why the fused decision makes sense, or where it is surprising
-- Use these examples to make the system behavior concrete for the reader
-- Tie the examples back to the research question
+- Which 2 to 4 cases best represent congruent, dissonant, and ambiguous signals?
+- For each case, what are the text, face, fused, and response outputs?
+- Why is the chosen case interesting for the paper or slide deck?
+- Does the fused emotion match the intended interpretation of the case?
+- What makes the response feel supportive or mismatched in that example?
+- How do these examples help the reader understand the research question?
 
 ## Human Evaluation Plan
-- Describe the planned participant task or informal review process
-- State what participants will rate: empathy, clarity, and emotional alignment
-- Explain how the evaluation will compare text-only, face-only, and fused outputs
-- Note the expected sample size and any ethics or consent considerations
-- Clarify that this is a prototype-level evaluation, not a clinical study
+- Who will review the outputs, and what is the expected participant profile?
+- What task will participants perform when rating a case?
+- How will empathy, social presence, and trust be scored on the 1-5 scale?
+- How many cases will each participant see, and in what order?
+- Will the evaluation compare text-only, face-only, and fused outputs side by side?
+- What consent, privacy, and anonymity notes are needed for a course project setting?
 
 ## Results and Discussion
-- Summarize patterns observed in the demo outputs
-- Explain when the fusion behaves well
-- Note cases where the rule-based heuristic is limited
-- Include the ablation and alpha-sensitivity findings
-- Discuss the strongest case-study examples and why they matter
+- What patterns appear across the ablation and alpha-sensitivity tables?
+- When does text dominate the fused result, and when does face dominate?
+- Which cases look most stable across alpha values?
+- Which cases are sensitive to small changes in alpha, and why?
+- What do the case studies reveal about congruent versus dissonant signals?
+- What behavior should be highlighted as a strength of the prototype versus a limitation?
 
 ## Limitations
-- Text module is rule-based, not learned
-- Facial emotion is simulated rather than captured from a camera
-- Response generation is template-based
-- Small prototype scale limits generalization
+- Which parts of the system are still simulated or approximate?
+- Where can the transformer or face pipeline fail in practice?
+- What kinds of emotion or context are still hard for the prototype?
+- How do missing faces, ambiguous text, or conflicting signals affect results?
+- Why do these limitations matter for interpreting the evaluation results?
 
 ## Future Work
 - Replace text heuristics with a trained model
@@ -92,5 +96,7 @@
 - Run a larger human evaluation
 
 ## Conclusion
-- Restate the research goal and the value of bimodal affective alignment
-- Emphasize that the prototype is a research scaffold, not a final system
+- What is the main takeaway from the prototype evaluation?
+- How did the fusion strategy help, and where did it not help?
+- What does the case-study workflow show about congruent versus dissonant signals?
+- How should readers interpret the project as a research scaffold rather than a finished system?

@@ -5,6 +5,10 @@ from __future__ import annotations
 from math import isclose
 
 from app.evaluation import evaluate_case
+from app.case_studies import (
+    DEFAULT_CASE_STUDIES,
+    generate_case_study_table,
+)
 from app.experiment_runner import (
     DEFAULT_CASES,
     run_ablation_study,
@@ -12,6 +16,11 @@ from app.experiment_runner import (
 )
 from app.face_emotion import detect_face_emotion_from_image, map_deepface_emotions
 from app.fusion import fuse_emotions
+from app.human_eval import (
+    HUMAN_EVAL_COLUMNS,
+    make_human_eval_template,
+    save_human_eval_template,
+)
 from app.response_generator import generate_response
 from app.text_emotion import (
     EMOTIONS,
@@ -168,6 +177,63 @@ def test_evaluation_case_returns_dict() -> None:
     assert required_keys <= set(case)
     assert case["fused_top_emotion"] in EMOTIONS
     assert isinstance(case["empathetic_response"], str)
+
+
+def test_case_study_table_returns_dataframe(monkeypatch, tmp_path) -> None:
+    """Case-study generation should return a table with the expected columns."""
+
+    monkeypatch.setattr(
+        "app.case_studies.detect_text_emotion",
+        lambda text: _sample_probs(),
+    )
+    monkeypatch.setattr(
+        "app.case_studies.CASE_STUDIES_OUTPUT_PATH",
+        tmp_path / "case_studies.csv",
+    )
+
+    table = generate_case_study_table(alpha=0.5)
+
+    expected_columns = {
+        "case_id",
+        "user_text",
+        "text_top_emotion",
+        "face_top_emotion",
+        "fused_top_emotion",
+        "empathetic_response",
+        "case_type",
+    }
+    assert _table_length(table) == len(DEFAULT_CASE_STUDIES)
+    assert expected_columns <= set(_table_columns(table))
+    rows = table.to_dict(orient="records") if hasattr(table, "to_dict") else list(table)
+    assert {row["case_type"] for row in rows} <= {"Congruent", "Dissonant", "Ambiguous"}
+    assert (tmp_path / "case_studies.csv").exists()
+
+
+def test_human_eval_template_returns_dataframe(monkeypatch, tmp_path) -> None:
+    """Human evaluation templates should keep the expected rating columns."""
+
+    monkeypatch.setattr(
+        "app.case_studies.detect_text_emotion",
+        lambda text: _sample_probs(),
+    )
+    monkeypatch.setattr(
+        "app.case_studies.CASE_STUDIES_OUTPUT_PATH",
+        tmp_path / "case_studies.csv",
+    )
+
+    case_table = generate_case_study_table(alpha=0.5)
+    template = make_human_eval_template(case_table)
+    saved_path = save_human_eval_template(template, str(tmp_path / "human_eval_template.csv"))
+
+    assert _table_length(template) == len(DEFAULT_CASE_STUDIES)
+    assert set(HUMAN_EVAL_COLUMNS) <= set(_table_columns(template))
+    rows = template.to_dict(orient="records") if hasattr(template, "to_dict") else list(template)
+    first_row = rows[0]
+    assert first_row["empathy_rating"] == ""
+    assert first_row["social_presence_rating"] == ""
+    assert first_row["trust_rating"] == ""
+    assert (tmp_path / "human_eval_template.csv").exists()
+    assert saved_path.endswith("human_eval_template.csv")
 
 
 def test_fusion_returns_dict_and_string() -> None:

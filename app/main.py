@@ -14,6 +14,15 @@ try:
         run_ablation_study,
         run_alpha_sensitivity,
     )
+    from app.case_studies import (
+        CASE_STUDIES_OUTPUT_PATH,
+        generate_case_study_table,
+    )
+    from app.human_eval import (
+        HUMAN_EVAL_TEMPLATE_PATH,
+        make_human_eval_template,
+        save_human_eval_template,
+    )
     from app.fusion import get_top_n_emotions, fuse_emotions
     from app.response_generator import generate_response
     from app.text_emotion import (
@@ -29,6 +38,12 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
         DEFAULT_ALPHA_GRID,
         run_ablation_study,
         run_alpha_sensitivity,
+    )
+    from case_studies import CASE_STUDIES_OUTPUT_PATH, generate_case_study_table
+    from human_eval import (
+        HUMAN_EVAL_TEMPLATE_PATH,
+        make_human_eval_template,
+        save_human_eval_template,
     )
     from fusion import get_top_n_emotions, fuse_emotions
     from response_generator import generate_response
@@ -101,9 +116,9 @@ def main() -> None:
             "This prototype studies bimodal affective alignment by combining text "
             "and facial cues before generating a short supportive response."
         )
-        st.write("Current stage: Day 5 Prototype")
+        st.write("Current stage: Day 6 Prototype")
         st.caption(
-            "Day 5 uses a pretrained transformer-based text emotion module when available."
+            "Day 6 uses a pretrained transformer-based text emotion module when available."
         )
         st.caption(
             "Image-based facial analysis remains part of the prototype."
@@ -202,6 +217,33 @@ def main() -> None:
             alpha_df = run_alpha_sensitivity(DEFAULT_ALPHA_GRID)
             st.success(f"Saved alpha sensitivity results to {ALPHA_SENSITIVITY_PATH}")
             st.dataframe(alpha_df, width="stretch")
+
+    st.divider()
+    st.subheader("Human Evaluation and Case Studies")
+    st.info(
+        "Use a 1-5 scale to rate empathy, social presence, and trust. "
+        "Case studies help compare congruent versus dissonant emotional signals."
+    )
+
+    human_col1, human_col2 = st.columns(2)
+    with human_col1:
+        if st.button(
+            "Generate Human Evaluation Template",
+            key="generate_human_eval_template",
+        ):
+            case_study_table = generate_case_study_table(alpha=0.5)
+            template_table = make_human_eval_template(case_study_table)
+            saved_path = save_human_eval_template(
+                template_table,
+                str(HUMAN_EVAL_TEMPLATE_PATH),
+            )
+            st.success(f"Saved human evaluation template to {saved_path}")
+            st.dataframe(template_table, width="stretch")
+    with human_col2:
+        if st.button("Generate Case Study Table", key="generate_case_study_table"):
+            case_study_table = generate_case_study_table(alpha=0.5)
+            st.success(f"Saved case study table to {CASE_STUDIES_OUTPUT_PATH}")
+            st.dataframe(case_study_table, width="stretch")
 
 
 if __name__ == "__main__":

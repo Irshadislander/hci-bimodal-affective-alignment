@@ -30,6 +30,18 @@ pip install -r requirements.txt
 - `Run Ablation Study` saves a fixed-alpha comparison across the default case set.
 - `Run Alpha Sensitivity` saves a sweep across the default alpha grid.
 
+## Human Evaluation Template Generation
+- Open the Streamlit app and use the `Human Evaluation and Case Studies` section.
+- `Generate Human Evaluation Template` builds a blank reviewer sheet with empathy, social presence, and trust fields.
+- The template is based on the current case-study table and is ready for manual scoring.
+
+## Case Study Generation
+- `Generate Case Study Table` builds a compact set of congruent, dissonant, and ambiguous examples.
+- The table is designed for report writing and presentation examples.
+- Each row includes the text, text emotion, face emotion, fused emotion, and empathetic response.
+
 ## CSV Outputs
 - Ablation results are saved to `experiments/ablation_results.csv`
 - Alpha sensitivity results are saved to `experiments/alpha_sensitivity.csv`
+- Human evaluation templates are saved to `experiments/human_eval_template.csv`
+- Case study tables are saved to `experiments/case_studies.csv`

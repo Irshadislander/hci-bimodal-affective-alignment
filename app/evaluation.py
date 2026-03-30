@@ -1,4 +1,4 @@
-"""Case-level evaluation helpers for the Day 5 prototype."""
+"""Case-level evaluation helpers for the Day 6 prototype."""
 
 from __future__ import annotations
 
