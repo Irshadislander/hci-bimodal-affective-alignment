@@ -6,6 +6,7 @@ try:
     from app.face_emotion import (
         detect_face_emotion_from_image,
         get_face_analysis_warning,
+        get_face_runtime_status,
     )
     from app.experiment_runner import (
         ABLATION_RESULTS_PATH,
@@ -42,7 +43,11 @@ try:
     from app.plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from app.utils import probs_to_dataframe
 except ImportError:  # pragma: no cover - supports running from app/ directly
-    from face_emotion import detect_face_emotion_from_image, get_face_analysis_warning
+    from face_emotion import (
+        detect_face_emotion_from_image,
+        get_face_analysis_warning,
+        get_face_runtime_status,
+    )
     from experiment_runner import (
         ABLATION_RESULTS_PATH,
         ALPHA_SENSITIVITY_PATH,
@@ -82,6 +87,7 @@ def analyze(user_text: str, alpha: float, face_image=None) -> dict[str, object]:
     text_runtime_status = get_text_runtime_status()
     face_probs = detect_face_emotion_from_image(face_image)
     face_warning = get_face_analysis_warning()
+    face_runtime_status = get_face_runtime_status()
     fused_probs, fused_emotion = fuse_emotions(text_probs, face_probs, alpha)
     response = generate_response(user_text, fused_emotion)
     return {
@@ -90,6 +96,8 @@ def analyze(user_text: str, alpha: float, face_image=None) -> dict[str, object]:
         "text_backend_status": text_runtime_status,
         "face_probs": face_probs,
         "face_warning": face_warning,
+        "face_runtime_status": face_runtime_status,
+        "face_backend_status": face_runtime_status,
         "fused_probs": fused_probs,
         "fused_emotion": fused_emotion,
         "response": response,
@@ -139,6 +147,52 @@ def _render_text_runtime_status(st, runtime_status: dict[str, object]) -> None:
             "The transformer runtime is active and provided the text emotion "
             "distribution for this run."
         )
+
+
+def _render_face_runtime_status(
+    st,
+    runtime_status: dict[str, object],
+    warning: str,
+    has_image: bool,
+) -> None:
+    """Render a compact face-runtime status block for the analysis section."""
+
+    runtime_mode = str(runtime_status.get("runtime_mode", "fallback_rule_based"))
+    model_name = runtime_status.get("model_name") or "Unavailable"
+    fallback_used = bool(runtime_status.get("fallback_used", False))
+    face_runtime_active = bool(runtime_status.get("face_runtime_active", False))
+    message = str(runtime_status.get("message", "")).strip()
+    load_error = runtime_status.get("load_error")
+    inference_error = runtime_status.get("inference_error")
+
+    st.markdown("#### Face Runtime Status")
+    status_cols = st.columns(2)
+    status_cols[0].metric("Runtime mode", runtime_mode.replace("_", " ").title())
+    status_cols[1].metric("Model", str(model_name))
+
+    if warning:
+        st.warning(warning)
+    elif face_runtime_active and not fallback_used:
+        st.success("Face inference is active and the uploaded image was analyzed directly.")
+    elif face_runtime_active and fallback_used:
+        if has_image:
+            st.warning(
+                "A backup face-analysis path was used for this run. "
+                "The runtime remains active, but the primary model was not used."
+            )
+        else:
+            st.warning(
+                "No image was uploaded, so the safe fallback facial distribution was used."
+            )
+    else:
+        st.info("The face runtime has not been activated yet.")
+
+    if message and message != warning:
+        st.caption(message)
+    if load_error:
+        st.caption(f"Load issue: {load_error}")
+    if inference_error:
+        st.caption(f"Analysis issue: {inference_error}")
 
 
 def _probability_table(probs: dict[str, float]) -> object:
@@ -222,10 +276,12 @@ def main() -> None:
 
         st.markdown("### B) Face Emotion")
         st.dataframe(_probability_table(results["face_probs"]), width="stretch")
-        if results["face_warning"]:
-            st.warning(results["face_warning"])
-        else:
-            st.success("Facial analysis completed from the uploaded image.")
+        _render_face_runtime_status(
+            st,
+            results["face_runtime_status"],
+            results["face_warning"],
+            uploaded_image_bytes is not None,
+        )
         _emotion_callout(st, face_top, "Face emotion")
 
         st.markdown("### C) Fused Emotion")

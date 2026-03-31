@@ -22,7 +22,15 @@ from app.experiment_runner import (
     run_ablation_study,
     run_alpha_sensitivity,
 )
-from app.face_emotion import detect_face_emotion_from_image, map_deepface_emotions
+import app.face_emotion as face_emotion_module
+from app.face_emotion import (
+    detect_face_emotion_from_image,
+    get_face_fallback_distribution,
+    get_face_runtime_status,
+    initialize_face_runtime,
+    map_deepface_emotions,
+    map_face_outputs_to_project_emotions,
+)
 from app.fusion import fuse_emotions
 from app.final_report_builder import (
     build_report_result_tables,
@@ -102,6 +110,29 @@ def _reset_text_runtime(monkeypatch) -> None:
             "message": (
                 "Transformer runtime has not been initialized yet. "
                 "The emergency rule-based fallback is ready if needed."
+            ),
+        },
+    )
+
+
+def _reset_face_runtime(monkeypatch) -> None:
+    """Reset the module-level face runtime cache for isolated tests."""
+
+    monkeypatch.setattr(face_emotion_module, "_FACE_ANALYZER", None)
+    monkeypatch.setattr(face_emotion_module, "_FACE_MODEL_CACHE", None)
+    monkeypatch.setattr(face_emotion_module, "_FACE_RUNTIME_INITIALIZED", False)
+    monkeypatch.setattr(face_emotion_module, "_LAST_WARNING", "")
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_FACE_RUNTIME_STATUS",
+        {
+            "runtime_mode": "fallback_rule_based",
+            "model_name": None,
+            "fallback_used": True,
+            "face_runtime_active": False,
+            "message": (
+                "Face runtime has not been initialized yet. "
+                "The image-based analyzer will activate on first use."
             ),
         },
     )
@@ -518,33 +549,174 @@ def test_text_runtime_status_returns_dict(monkeypatch) -> None:
     assert status["model_name"] == "fake-roberta-model"
 
 
+def test_face_runtime_status_returns_dict() -> None:
+    """Face runtime status should always return a dictionary."""
+
+    status = get_face_runtime_status()
+
+    assert isinstance(status, dict)
+    assert {"runtime_mode", "model_name", "fallback_used", "face_runtime_active", "message"} <= set(status)
+    assert status["runtime_mode"] == "fallback_rule_based"
+
+
+def test_initialize_face_runtime_returns_status_dict(monkeypatch) -> None:
+    """Explicit face runtime initialization should return an active status dictionary."""
+
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "deepface",
+        "model_name": "DeepFace Emotion",
+        "fallback_used": False,
+        "face_runtime_active": True,
+        "message": "DeepFace emotion model loaded successfully and cached for image inference.",
+    }
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (object(), fake_status),
+    )
+
+    status = initialize_face_runtime()
+    runtime_status = get_face_runtime_status()
+
+    assert isinstance(status, dict)
+    assert status == runtime_status
+    assert status["runtime_mode"] == "deepface"
+    assert status["face_runtime_active"] is True
+    assert status["fallback_used"] is False
+
+
+def test_initialize_face_runtime_records_backup_status(monkeypatch) -> None:
+    """Initialization failures should degrade to the image-based heuristic backup."""
+
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "image_heuristic",
+        "model_name": "Image heuristic backup",
+        "fallback_used": True,
+        "face_runtime_active": True,
+        "message": "DeepFace could not be imported. Using the image-based heuristic backup runtime.",
+        "load_error": "ModuleNotFoundError: No module named 'deepface'",
+    }
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (None, fake_status),
+    )
+
+    status = initialize_face_runtime()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "image_heuristic"
+    assert status["fallback_used"] is True
+    assert status["face_runtime_active"] is True
+    assert "load_error" in status
+
+
+def test_face_mapping_returns_dict() -> None:
+    """Face output mapping should return the project emotion schema."""
+
+    raw_output = [
+        {"label": "joy", "score": 0.40},
+        {"label": "sadness", "score": 0.18},
+        {"label": "anger", "score": 0.10},
+        {"label": "neutral", "score": 0.12},
+        {"label": "fear", "score": 0.08},
+        {"label": "surprise", "score": 0.07},
+        {"label": "disgust", "score": 0.05},
+    ]
+    mapped = map_face_outputs_to_project_emotions(raw_output)
+
+    assert isinstance(mapped, dict)
+    assert set(mapped) == set(EMOTIONS)
+    assert isclose(sum(mapped.values()), 1.0, abs_tol=1e-6)
+    assert mapped["happy"] > mapped["sad"]
+
+
 def test_face_detector_returns_dict() -> None:
     """Face fallback path should return a normalized probability dictionary."""
 
     face_probs = detect_face_emotion_from_image(None)
+    status = get_face_runtime_status()
 
     assert isinstance(face_probs, dict)
     assert set(face_probs) == set(EMOTIONS)
     assert isclose(sum(face_probs.values()), 1.0, abs_tol=1e-6)
+    assert isinstance(status, dict)
+    assert status["fallback_used"] is True
 
 
-def test_face_mapping_returns_dict() -> None:
-    """DeepFace emotion mapping should return the project emotion schema."""
+def test_face_detector_uses_active_runtime_when_image_is_present(monkeypatch) -> None:
+    """Face analysis should use the primary runtime path when inference succeeds."""
 
-    raw_emotions = {
-        "happy": 12.0,
-        "sad": 8.0,
-        "angry": 4.0,
-        "neutral": 60.0,
-        "fear": 5.0,
-        "surprise": 6.0,
-        "disgust": 5.0,
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "deepface",
+        "model_name": "DeepFace Emotion",
+        "fallback_used": False,
+        "face_runtime_active": True,
+        "message": "DeepFace emotion model loaded successfully and cached for image inference.",
     }
-    mapped = map_deepface_emotions(raw_emotions)
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (object(), fake_status),
+    )
+    monkeypatch.setattr(face_emotion_module, "_to_rgb_array", lambda image: "rgb-array")
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_run_face_inference",
+        lambda image_array: {
+            "happy": 70.0,
+            "sad": 5.0,
+            "angry": 4.0,
+            "neutral": 15.0,
+            "fear": 2.0,
+            "surprise": 2.0,
+            "disgust": 2.0,
+        },
+    )
 
-    assert isinstance(mapped, dict)
-    assert set(mapped) == set(EMOTIONS)
-    assert mapped["neutral"] == 60.0
+    face_probs = detect_face_emotion_from_image("uploaded-image")
+    status = get_face_runtime_status()
+
+    assert isinstance(face_probs, dict)
+    assert set(face_probs) == set(EMOTIONS)
+    assert isclose(sum(face_probs.values()), 1.0, abs_tol=1e-6)
+    assert status["runtime_mode"] == "deepface"
+    assert status["fallback_used"] is False
+    assert status["face_runtime_active"] is True
+
+
+def test_face_detector_falls_back_safely_on_inference_error(monkeypatch) -> None:
+    """Face analysis should fall back safely when inference fails."""
+
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "deepface",
+        "model_name": "DeepFace Emotion",
+        "fallback_used": False,
+        "face_runtime_active": True,
+        "message": "DeepFace emotion model loaded successfully and cached for image inference.",
+    }
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (object(), fake_status),
+    )
+    monkeypatch.setattr(face_emotion_module, "_to_rgb_array", lambda image: "rgb-array")
+
+    def _raise_inference_error(_image_array):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(face_emotion_module, "_run_face_inference", _raise_inference_error)
+
+    face_probs = detect_face_emotion_from_image("uploaded-image")
+    status = get_face_runtime_status()
+
+    assert face_probs == get_face_fallback_distribution()
+    assert status["fallback_used"] is True
+    assert "inference_error" in status
 
 
 def test_evaluation_case_returns_dict() -> None:

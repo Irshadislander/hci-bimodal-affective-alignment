@@ -14,7 +14,7 @@ Emotion-aware interfaces often receive incomplete or ambiguous signals from a si
 ## 4. System Architecture
 The system is organized into small modules with clear responsibilities:
 - `app/text_emotion.py` for transformer-first text emotion runtime
-- `app/face_emotion.py` for image-based facial emotion analysis
+- `app/face_emotion.py` for image-based facial emotion analysis, with DeepFace as the primary runtime and a safe fallback only when face loading or detection fails
 - `app/fusion.py` for weighted late fusion
 - `app/response_generator.py` for empathetic response generation
 - `app/evaluation.py`, `app/experiment_runner.py`, `app/case_studies.py`, `app/human_eval.py`, and `app/final_evaluation_pack.py` for evaluation assets
@@ -23,7 +23,7 @@ The system is organized into small modules with clear responsibilities:
 
 ## 5. Core Capabilities
 - Transformer-first text emotion analysis with emergency-only rule-based fallback
-- Image-based facial emotion analysis with safe fallback behavior
+- Image-based facial emotion analysis with DeepFace as the primary runtime and safe fallback only for failure recovery
 - Weighted fusion across the seven emotion classes
 - Short empathetic response generation
 - Ablation study support
