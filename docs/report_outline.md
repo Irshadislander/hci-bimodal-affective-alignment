@@ -2,7 +2,7 @@
 
 ## Title
 - Confirm the final paper title and subtitle.
-- Frame the project as a mini research prototype in HCI.
+- Frame the project as a research prototype in HCI.
 - Keep the title aligned with the report draft and presentation.
 
 ## Abstract
@@ -18,7 +18,7 @@
 ## 2. Research Question
 - Write the main question in one sentence.
 - Add the alpha-sensitivity subquestion.
-- Explain why the question fits a mini research project.
+- Explain why the question fits a focused course project.
 
 ## 3. System Overview
 - Describe the end-to-end pipeline from input to response.
@@ -84,8 +84,8 @@
 - What is clearly out of scope for this prototype?
 
 ## 14. Future Work
-- What is the next model upgrade for text or face analysis?
-- What is the next interaction upgrade for the demo?
+- What is the next model enhancement for text or face analysis?
+- What is the next interaction enhancement for the demo?
 - How could the evaluation be strengthened?
 - What additional modalities or datasets would be useful?
 

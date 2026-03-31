@@ -1,4 +1,4 @@
-"""Streamlit demo app for the bimodal affective alignment prototype."""
+"""Streamlit application for the bimodal affective alignment project."""
 
 from __future__ import annotations
 
@@ -126,24 +126,22 @@ def main() -> None:
 
     st.title("HCI Bimodal Affective Alignment")
     st.write(
-        "A mini research-style prototype that combines transformer-based text emotion recognition "
-        "with a rule-based fallback, image-based facial emotion recognition, weighted fusion, "
+        "A multimodal HCI prototype that combines transformer-based text emotion recognition "
+        "with a rule-based fallback, image-based facial emotion analysis, weighted fusion, "
         "and empathetic response generation."
     )
 
     with st.sidebar:
         st.header("Project Summary")
         st.write(
-            "This prototype studies bimodal affective alignment by combining text "
+            "This project studies bimodal affective alignment by combining text "
             "and facial cues before generating a short supportive response."
         )
-        st.write("Current stage: Day 9 Prototype")
+        st.write("Current status: Final evaluation package ready")
         st.caption(
-            "Day 9 uses a pretrained transformer-based text emotion module when available."
+            "Transformer-based text emotion analysis is used when available; otherwise the rule-based fallback is used."
         )
-        st.caption(
-            "Image-based facial analysis remains part of the prototype."
-        )
+        st.caption("Image-based facial analysis is enabled when an image is uploaded.")
 
     uploaded_image = st.file_uploader(
         "Upload a facial image",
@@ -155,7 +153,7 @@ def main() -> None:
         st.image(uploaded_image_bytes, caption="Uploaded image preview", width="stretch")
     else:
         st.caption(
-            "No image uploaded yet. The app will use a fallback facial distribution when you run analysis."
+            "No image has been uploaded. Facial analysis will use a neutral fallback distribution if you run analysis without an image."
         )
 
     with st.form("analysis_form"):
@@ -190,7 +188,7 @@ def main() -> None:
             st.info(text_backend_status["message"])
         else:
             st.warning(text_backend_status["message"])
-        _emotion_callout(st, text_top, "Text signal")
+        _emotion_callout(st, text_top, "Text emotion")
 
         st.markdown("### B) Face Emotion")
         st.dataframe(_probability_table(results["face_probs"]), width="stretch")
@@ -198,7 +196,7 @@ def main() -> None:
             st.warning(results["face_warning"])
         else:
             st.success("Facial analysis completed from the uploaded image.")
-        _emotion_callout(st, face_top, "Face signal")
+        _emotion_callout(st, face_top, "Face emotion")
 
         st.markdown("### C) Fused Emotion")
         st.dataframe(_probability_table(results["fused_probs"]), width="stretch")
@@ -215,14 +213,14 @@ def main() -> None:
 
         st.markdown("### D) Final Detected Emotion")
         final_emotion = results["fused_emotion"]
-        _emotion_callout(st, final_emotion, "Final detected emotion")
-        st.metric("Detected emotion", final_emotion.title())
+        _emotion_callout(st, final_emotion, "Final emotion")
+        st.metric("Final emotion", final_emotion.title())
 
         st.markdown("### E) Empathetic Response")
         st.info(results["response"])
 
     st.divider()
-    st.subheader("Prototype Evaluation Tools")
+    st.subheader("Evaluation Tools")
     st.caption(
         "Text-only = alpha 1.0, face-only = alpha 0.0, bimodal = alpha 0.5."
     )
@@ -242,8 +240,8 @@ def main() -> None:
     st.divider()
     st.subheader("Human Evaluation and Case Studies")
     st.info(
-        "Use a 1-5 scale to rate empathy, social presence, and trust. "
-        "Case studies help compare congruent versus dissonant emotional signals."
+        "Use a 1-5 scale to rate empathy, social presence, trust, and helpfulness. "
+        "The fused mode is the main system, while text-only and face-only serve as baselines."
     )
 
     human_col1, human_col2 = st.columns(2)
@@ -267,7 +265,7 @@ def main() -> None:
             st.dataframe(case_study_table, width="stretch")
 
     st.divider()
-    st.subheader("Final Human Evaluation Pack")
+    st.subheader("Final Evaluation Pack")
     st.info(
         "Ask 4-8 people to rate empathy, social presence, trust, and helpfulness on a 1-5 scale. "
         "Fused mode is the main system; text_only and face_only are comparison baselines."
@@ -289,7 +287,7 @@ def main() -> None:
             completed_path = HUMAN_RATING_SHEET_COMPLETED_PATH
             if not completed_path.exists():
                 st.warning(
-                    f"No completed human-rating file found at {completed_path}. "
+                    f"No completed human-rating file was found at {completed_path}. "
                     "A blank summary and placeholder plots will be generated."
                 )
             validation_report = validate_completed_human_ratings(str(completed_path))

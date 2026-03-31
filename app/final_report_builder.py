@@ -1,4 +1,4 @@
-"""Final report assembly helpers for the Day 9 prototype."""
+"""Final report assembly helpers for the project."""
 
 from __future__ import annotations
 
@@ -246,7 +246,7 @@ def export_report_status(output_path: str = "docs/report_status.md") -> str:
         ("Experiments", final_pack.HUMAN_RATING_SHEET_PATH, Path(final_pack.HUMAN_RATING_SHEET_PATH).exists(), "Blank human rating sheet"),
         ("Experiments", final_pack.HUMAN_RATING_SHEET_COMPLETED_PATH, Path(final_pack.HUMAN_RATING_SHEET_COMPLETED_PATH).exists(), "Completed human ratings"),
         ("Experiments", final_pack.HUMAN_EVAL_SUMMARY_PATH, not tables["human_eval_summary_table"].empty, "Aggregated human ratings"),
-        ("Docs", DOCS_DIR / "final_report_draft.md", (DOCS_DIR / "final_report_draft.md").exists(), "Near-final report draft"),
+        ("Docs", DOCS_DIR / "final_report_draft.md", (DOCS_DIR / "final_report_draft.md").exists(), "Final report draft"),
         ("Docs", DOCS_DIR / "final_presentation_draft.md", (DOCS_DIR / "final_presentation_draft.md").exists(), "Presentation draft"),
         ("Docs", DOCS_DIR / "demo_script.md", (DOCS_DIR / "demo_script.md").exists(), "Demo script"),
         ("Docs", DOCS_DIR / "results_summary_draft.md", (DOCS_DIR / "results_summary_draft.md").exists(), "Results summary draft"),
@@ -256,7 +256,7 @@ def export_report_status(output_path: str = "docs/report_status.md") -> str:
     lines: list[str] = [
         "# Report Status",
         "",
-        "This status report tracks the files that support the near-final course submission.",
+        "This status report tracks the files that support the final course submission.",
         "",
         "## Summary",
     ]

@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
 
 
 def _aligned_probs(probs: dict[str, float]) -> dict[str, float]:
-    """Return a probability dict aligned to the starter emotion order."""
+    """Return a probability dict aligned to the project emotion order."""
 
     return {emotion: float(probs.get(emotion, 0.0)) for emotion in EMOTIONS}
 

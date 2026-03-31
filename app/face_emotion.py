@@ -1,4 +1,4 @@
-"""Image-based facial emotion analysis for the Day 3 prototype."""
+"""Image-based facial emotion analysis for the project."""
 
 from __future__ import annotations
 

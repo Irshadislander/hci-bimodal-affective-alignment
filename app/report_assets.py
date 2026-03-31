@@ -1,4 +1,4 @@
-"""Report asset loading and summary helpers for the Day 7 prototype."""
+"""Report asset loading and summary helpers for the project."""
 
 from __future__ import annotations
 

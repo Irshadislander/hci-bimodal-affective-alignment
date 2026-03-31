@@ -3,7 +3,7 @@
 ## 1. Title
 - Project title and one-line framing.
 - Presenter, course, and date.
-- Speaker notes: introduce the project as a Day 8 multimodal affective-alignment prototype.
+- Speaker notes: introduce the project as a multimodal affective-alignment HCI system.
 
 ## 2. Motivation
 - Why emotion-aware HCI matters.

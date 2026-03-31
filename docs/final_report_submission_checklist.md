@@ -1,6 +1,6 @@
 # Final Report Submission Checklist
 
-## Code
+## Code and Runtime
 - [ ] Streamlit app runs without errors
 - [ ] Text emotion path works with transformer fallback
 - [ ] Face emotion path works with image upload fallback
@@ -23,14 +23,14 @@
 - [ ] Case study table
 - [ ] Human rating sheet
 
-## Plots
+## Plots and Figures
 - [ ] `experiments/ablation_counts.png`
 - [ ] `experiments/alpha_sensitivity_plot.png`
 - [ ] `experiments/case_type_distribution.png`
 - [ ] `experiments/human_eval_summary_plot.png`
 - [ ] `experiments/helpfulness_summary_plot.png`
 
-## Data Files
+## Evaluation Data
 - [ ] `experiments/ablation_results.csv`
 - [ ] `experiments/alpha_sensitivity.csv`
 - [ ] `experiments/case_studies.csv`

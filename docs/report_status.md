@@ -1,6 +1,6 @@
 # Report Status
 
-This status report tracks the files that support the near-final course submission.
+This status report tracks the files that support the final course submission.
 
 ## Summary
 - The current evaluation package covers 10 experiment cases.
@@ -19,7 +19,7 @@ This status report tracks the files that support the near-final course submissio
 | Experiments | `experiments/human_rating_sheet.csv` | Yes | Blank human rating sheet |
 | Experiments | `experiments/human_rating_sheet_completed.csv` | No | Completed human ratings |
 | Experiments | `experiments/human_eval_summary.csv` | No | Aggregated human ratings |
-| Docs | `docs/final_report_draft.md` | Yes | Near-final report draft |
+| Docs | `docs/final_report_draft.md` | Yes | Final report draft |
 | Docs | `docs/final_presentation_draft.md` | Yes | Presentation draft |
 | Docs | `docs/demo_script.md` | Yes | Demo script |
 | Docs | `docs/results_summary_draft.md` | Yes | Results summary draft |
@@ -31,7 +31,7 @@ This status report tracks the files that support the near-final course submissio
 - Case study examples
 - Mode comparison cases
 - Blank human rating sheet
-- Near-final report draft
+- Final report draft
 - Presentation draft
 - Demo script
 - Results summary draft

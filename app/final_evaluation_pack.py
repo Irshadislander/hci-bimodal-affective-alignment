@@ -1,4 +1,4 @@
-"""Final human-evaluation and comparison assets for the Day 8 prototype."""
+"""Final human-evaluation and comparison assets for the project."""
 
 from __future__ import annotations
 
@@ -32,6 +32,11 @@ HUMAN_RATING_SHEET_COMPLETED_PATH = EXPERIMENTS_DIR / "human_rating_sheet_comple
 HUMAN_EVAL_SUMMARY_PATH = EXPERIMENTS_DIR / "human_eval_summary.csv"
 
 MODE_ORDER = ["text_only", "face_only", "fused"]
+MODE_DISPLAY_LABELS = {
+    "text_only": "Text only",
+    "face_only": "Face only",
+    "fused": "Fused",
+}
 RATING_COLUMNS = [
     "empathy_rating",
     "social_presence_rating",
@@ -139,11 +144,30 @@ def _top_emotion(probs: dict[str, float]) -> str:
     return top[0][0] if top else "neutral"
 
 
+def _normalize_mode_value(value: object) -> str:
+    """Normalize a mode label to the internal comparison schema."""
+
+    mode = str(value).strip().lower().replace("-", "_").replace(" ", "_")
+    if mode in MODE_ORDER:
+        return mode
+    for key, label in MODE_DISPLAY_LABELS.items():
+        if mode == label.lower().replace(" ", "_"):
+            return key
+    return mode
+
+
 def _face_probs_from_case(case_spec: dict[str, object]) -> dict[str, float]:
     """Return a stable facial probability profile for a case study example."""
 
     profile_name = str(case_spec.get("face_profile", "neutral"))
     return dict(_FACE_PROFILES.get(profile_name, _FACE_PROFILES["neutral"]))
+
+
+def _response_for_mode(user_text: str, emotion: str, mode: str) -> str:
+    """Generate a stable response variant for a specific comparison mode."""
+
+    mode_seed = f"{mode}|{user_text}"
+    return generate_response(mode_seed, emotion)
 
 
 def _mode_rows_for_case(
@@ -169,9 +193,9 @@ def _mode_rows_for_case(
         "text_top_emotion": text_top_emotion,
         "face_top_emotion": face_top_emotion,
         "fused_top_emotion": fused_top_emotion,
-        "text_only_response": generate_response(user_text, text_top_emotion),
-        "face_only_response": generate_response(user_text, face_top_emotion),
-        "fused_response": generate_response(user_text, fused_top_emotion),
+        "text_only_response": _response_for_mode(user_text, text_top_emotion, "text_only"),
+        "face_only_response": _response_for_mode(user_text, face_top_emotion, "face_only"),
+        "fused_response": _response_for_mode(user_text, fused_top_emotion, "fused"),
         "case_type": case_type,
     }
 
@@ -187,7 +211,7 @@ def _mode_rows_for_case(
                 "case_id": case_id,
                 "case_type": case_type,
                 "user_text": user_text,
-                "mode": mode,
+                "mode": MODE_DISPLAY_LABELS.get(mode, mode.title()),
                 "detected_emotion": detected_emotion,
                 "system_response": system_response,
                 "empathy_rating": "",
@@ -274,7 +298,8 @@ def validate_completed_human_ratings(path: str = "experiments/human_rating_sheet
     if "rater_id" in df.columns:
         report["unique_raters"] = int(df["rater_id"].replace("", pd.NA).dropna().nunique())
     if "mode" in df.columns:
-        mode_counts = df["mode"].replace("", pd.NA).dropna().astype(str).value_counts()
+        normalized_modes = df["mode"].replace("", pd.NA).dropna().map(_normalize_mode_value)
+        mode_counts = normalized_modes.value_counts()
         report["mode_counts"] = {str(key): int(value) for key, value in mode_counts.items()}
 
     missing_values_by_column: dict[str, int] = {}
@@ -380,7 +405,7 @@ def aggregate_human_ratings(path: str = "experiments/human_rating_sheet_complete
         }
         return summary_dict, empty_df
 
-    working["mode"] = working["mode"].astype(str).str.strip()
+    working["mode"] = working["mode"].map(_normalize_mode_value)
     working = working[working["mode"].isin(MODE_ORDER)]
 
     rows: list[dict[str, object]] = []

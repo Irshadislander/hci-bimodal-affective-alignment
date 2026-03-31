@@ -1,4 +1,4 @@
-"""Smoke tests for the Day 9 emotion pipeline."""
+"""Smoke tests for the bimodal affective alignment pipeline."""
 
 from __future__ import annotations
 
@@ -541,6 +541,7 @@ def test_build_human_rating_sheet_returns_dataframe(monkeypatch, tmp_path) -> No
     rows = df.to_dict(orient="records") if hasattr(df, "to_dict") else list(df)
     first_row = rows[0]
     assert first_row["rater_id"] == ""
+    assert first_row["mode"] == "Text only"
     assert first_row["empathy_rating"] == ""
     assert first_row["helpfulness_rating"] == ""
     assert (tmp_path / "human_rating_sheet.csv").exists()
