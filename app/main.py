@@ -1,4 +1,4 @@
-"""Streamlit demo app for the bimodal affective alignment prototype."""
+"""Streamlit application for the bimodal affective alignment project."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ try:
     from app.face_emotion import (
         detect_face_emotion_from_image,
         get_face_analysis_warning,
+        get_face_runtime_status,
     )
     from app.experiment_runner import (
         ABLATION_RESULTS_PATH,
@@ -34,15 +35,22 @@ try:
         save_human_eval_template,
     )
     from app.fusion import get_top_n_emotions, fuse_emotions
-    from app.response_generator import generate_response
+    from app.response_generator import (
+        generate_response,
+        get_response_runtime_status,
+    )
     from app.text_emotion import (
         detect_text_emotion,
-        get_text_emotion_backend_status,
+        get_text_runtime_status,
     )
     from app.plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from app.utils import probs_to_dataframe
 except ImportError:  # pragma: no cover - supports running from app/ directly
-    from face_emotion import detect_face_emotion_from_image, get_face_analysis_warning
+    from face_emotion import (
+        detect_face_emotion_from_image,
+        get_face_analysis_warning,
+        get_face_runtime_status,
+    )
     from experiment_runner import (
         ABLATION_RESULTS_PATH,
         ALPHA_SENSITIVITY_PATH,
@@ -67,8 +75,8 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
         save_human_eval_template,
     )
     from fusion import get_top_n_emotions, fuse_emotions
-    from response_generator import generate_response
-    from text_emotion import detect_text_emotion, get_text_emotion_backend_status
+    from response_generator import generate_response, get_response_runtime_status
+    from text_emotion import detect_text_emotion, get_text_runtime_status
     from plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from utils import probs_to_dataframe
 
@@ -79,19 +87,26 @@ def analyze(user_text: str, alpha: float, face_image=None) -> dict[str, object]:
     """Run the full emotion pipeline for the demo."""
 
     text_probs = detect_text_emotion(user_text)
-    text_backend_status = get_text_emotion_backend_status()
+    text_runtime_status = get_text_runtime_status()
     face_probs = detect_face_emotion_from_image(face_image)
     face_warning = get_face_analysis_warning()
+    face_runtime_status = get_face_runtime_status()
     fused_probs, fused_emotion = fuse_emotions(text_probs, face_probs, alpha)
     response = generate_response(user_text, fused_emotion)
+    response_runtime_status = get_response_runtime_status()
     return {
         "text_probs": text_probs,
-        "text_backend_status": text_backend_status,
+        "text_runtime_status": text_runtime_status,
+        "text_backend_status": text_runtime_status,
         "face_probs": face_probs,
         "face_warning": face_warning,
+        "face_runtime_status": face_runtime_status,
+        "face_backend_status": face_runtime_status,
         "fused_probs": fused_probs,
         "fused_emotion": fused_emotion,
         "response": response,
+        "response_runtime_status": response_runtime_status,
+        "response_backend_status": response_runtime_status,
     }
 
 
@@ -105,6 +120,118 @@ def _emotion_callout(st, emotion: str, label: str) -> None:
         st.info(message)
     else:
         st.warning(message)
+
+
+def _render_text_runtime_status(st, runtime_status: dict[str, object]) -> None:
+    """Render a compact text-runtime status block for the analysis section."""
+
+    runtime_mode = str(runtime_status.get("runtime_mode", "fallback_rule_based"))
+    model_name = runtime_status.get("model_name") or "Unavailable"
+    fallback_used = bool(runtime_status.get("fallback_used", False))
+    reason = runtime_status.get("load_error") or runtime_status.get("inference_error")
+
+    st.markdown("#### Text Runtime Status")
+    status_cols = st.columns(2)
+    status_cols[0].metric("Runtime mode", runtime_mode.replace("_", " ").title())
+    status_cols[1].metric("Model", str(model_name))
+
+    if fallback_used:
+        if runtime_mode == "transformer" and runtime_status.get("transformer_active", False):
+            st.warning(
+                "The transformer runtime is active, but this analysis fell back "
+                "to the emergency rule-based detector."
+            )
+        else:
+            st.warning(
+                "The transformer runtime was not available for this run, so the "
+                "emergency rule-based fallback produced the text emotion distribution."
+            )
+        if reason:
+            st.caption(f"Reason: {reason}")
+    else:
+        st.success(
+            "The transformer runtime is active and provided the text emotion "
+            "distribution for this run."
+        )
+
+
+def _render_face_runtime_status(
+    st,
+    runtime_status: dict[str, object],
+    warning: str,
+    has_image: bool,
+) -> None:
+    """Render a compact face-runtime status block for the analysis section."""
+
+    runtime_mode = str(runtime_status.get("runtime_mode", "fallback_rule_based"))
+    model_name = runtime_status.get("model_name") or "Unavailable"
+    fallback_used = bool(runtime_status.get("fallback_used", False))
+    face_runtime_active = bool(runtime_status.get("face_runtime_active", False))
+    message = str(runtime_status.get("message", "")).strip()
+    load_error = runtime_status.get("load_error")
+    inference_error = runtime_status.get("inference_error")
+
+    st.markdown("#### Face Runtime Status")
+    status_cols = st.columns(2)
+    status_cols[0].metric("Runtime mode", runtime_mode.replace("_", " ").title())
+    status_cols[1].metric("Model", str(model_name))
+
+    if warning:
+        st.warning(warning)
+    elif face_runtime_active and not fallback_used:
+        st.success("Face inference is active and the uploaded image was analyzed directly.")
+    elif face_runtime_active and fallback_used:
+        if has_image:
+            st.warning(
+                "A backup face-analysis path was used for this run. "
+                "The runtime remains active, but the primary model was not used."
+            )
+        else:
+            st.warning(
+                "No image was uploaded, so the safe fallback facial distribution was used."
+            )
+    else:
+        st.info("The face runtime has not been activated yet.")
+
+    if message and message != warning:
+        st.caption(message)
+    if load_error:
+        st.caption(f"Load issue: {load_error}")
+    if inference_error:
+        st.caption(f"Analysis issue: {inference_error}")
+
+
+def _render_response_runtime_status(st, runtime_status: dict[str, object]) -> None:
+    """Render a compact response-runtime status block for the analysis section."""
+
+    runtime_mode = str(runtime_status.get("runtime_mode", "fallback_template"))
+    model_name = runtime_status.get("model_name") or "Unavailable"
+    fallback_used = bool(runtime_status.get("fallback_used", False))
+    response_runtime_active = bool(runtime_status.get("response_runtime_active", False))
+    message = str(runtime_status.get("message", "")).strip()
+    load_error = runtime_status.get("load_error")
+    inference_error = runtime_status.get("inference_error")
+
+    st.markdown("#### Response Runtime Status")
+    status_cols = st.columns(2)
+    status_cols[0].metric("Runtime mode", runtime_mode.replace("_", " ").title())
+    status_cols[1].metric("Model", str(model_name))
+
+    if response_runtime_active and not fallback_used:
+        st.success("FLAN-T5 is active and generated the empathetic response for this run.")
+    elif fallback_used:
+        st.warning(
+            "The response generator used the safe fallback path for this run."
+        )
+    else:
+        st.info("The response runtime is not active yet.")
+
+    if message:
+        st.caption(message)
+    if load_error:
+        st.caption(f"Load issue: {load_error}")
+    if inference_error:
+        st.caption(f"Generation issue: {inference_error}")
 
 
 def _probability_table(probs: dict[str, float]) -> object:
@@ -126,23 +253,24 @@ def main() -> None:
 
     st.title("HCI Bimodal Affective Alignment")
     st.write(
-        "A mini research-style prototype that combines transformer-based text emotion recognition "
-        "with a rule-based fallback, image-based facial emotion recognition, weighted fusion, "
-        "and empathetic response generation."
+        "A multimodal HCI prototype that uses transformer-first text emotion recognition "
+        "with an emergency-only rule-based fallback, image-based facial emotion analysis, "
+        "weighted fusion, and FLAN-T5-first empathetic response generation with a safe fallback."
     )
 
     with st.sidebar:
         st.header("Project Summary")
         st.write(
-            "This prototype studies bimodal affective alignment by combining text "
+            "This project studies bimodal affective alignment by combining text "
             "and facial cues before generating a short supportive response."
         )
-        st.write("Current stage: Day 9 Prototype")
+        st.write("Current status: Final evaluation package ready")
         st.caption(
-            "Day 9 uses a pretrained transformer-based text emotion module when available."
+            "Transformer-based text emotion analysis is the primary runtime; the rule-based fallback is reserved for failure recovery."
         )
+        st.caption("Image-based facial analysis is enabled when an image is uploaded.")
         st.caption(
-            "Image-based facial analysis remains part of the prototype."
+            "FLAN-T5 response synthesis is the primary runtime; the template fallback is reserved for generation failure."
         )
 
     uploaded_image = st.file_uploader(
@@ -155,7 +283,7 @@ def main() -> None:
         st.image(uploaded_image_bytes, caption="Uploaded image preview", width="stretch")
     else:
         st.caption(
-            "No image uploaded yet. The app will use a fallback facial distribution when you run analysis."
+            "No image has been uploaded. Facial analysis will use a neutral fallback distribution if you run analysis without an image."
         )
 
     with st.form("analysis_form"):
@@ -185,20 +313,18 @@ def main() -> None:
 
         st.markdown("### A) Text Emotion")
         st.dataframe(_probability_table(results["text_probs"]), width="stretch")
-        text_backend_status = results["text_backend_status"]
-        if text_backend_status["mode"] == "transformer":
-            st.info(text_backend_status["message"])
-        else:
-            st.warning(text_backend_status["message"])
-        _emotion_callout(st, text_top, "Text signal")
+        _render_text_runtime_status(st, results["text_runtime_status"])
+        _emotion_callout(st, text_top, "Text emotion")
 
         st.markdown("### B) Face Emotion")
         st.dataframe(_probability_table(results["face_probs"]), width="stretch")
-        if results["face_warning"]:
-            st.warning(results["face_warning"])
-        else:
-            st.success("Facial analysis completed from the uploaded image.")
-        _emotion_callout(st, face_top, "Face signal")
+        _render_face_runtime_status(
+            st,
+            results["face_runtime_status"],
+            results["face_warning"],
+            uploaded_image_bytes is not None,
+        )
+        _emotion_callout(st, face_top, "Face emotion")
 
         st.markdown("### C) Fused Emotion")
         st.dataframe(_probability_table(results["fused_probs"]), width="stretch")
@@ -215,14 +341,15 @@ def main() -> None:
 
         st.markdown("### D) Final Detected Emotion")
         final_emotion = results["fused_emotion"]
-        _emotion_callout(st, final_emotion, "Final detected emotion")
-        st.metric("Detected emotion", final_emotion.title())
+        _emotion_callout(st, final_emotion, "Final emotion")
+        st.metric("Final emotion", final_emotion.title())
 
         st.markdown("### E) Empathetic Response")
         st.info(results["response"])
+        _render_response_runtime_status(st, results["response_runtime_status"])
 
     st.divider()
-    st.subheader("Prototype Evaluation Tools")
+    st.subheader("Evaluation Tools")
     st.caption(
         "Text-only = alpha 1.0, face-only = alpha 0.0, bimodal = alpha 0.5."
     )
@@ -242,8 +369,8 @@ def main() -> None:
     st.divider()
     st.subheader("Human Evaluation and Case Studies")
     st.info(
-        "Use a 1-5 scale to rate empathy, social presence, and trust. "
-        "Case studies help compare congruent versus dissonant emotional signals."
+        "Use a 1-5 scale to rate empathy, social presence, trust, and helpfulness. "
+        "The fused mode is the main system, while text-only and face-only serve as baselines."
     )
 
     human_col1, human_col2 = st.columns(2)
@@ -267,7 +394,7 @@ def main() -> None:
             st.dataframe(case_study_table, width="stretch")
 
     st.divider()
-    st.subheader("Final Human Evaluation Pack")
+    st.subheader("Final Evaluation Pack")
     st.info(
         "Ask 4-8 people to rate empathy, social presence, trust, and helpfulness on a 1-5 scale. "
         "Fused mode is the main system; text_only and face_only are comparison baselines."
@@ -289,7 +416,7 @@ def main() -> None:
             completed_path = HUMAN_RATING_SHEET_COMPLETED_PATH
             if not completed_path.exists():
                 st.warning(
-                    f"No completed human-rating file found at {completed_path}. "
+                    f"No completed human-rating file was found at {completed_path}. "
                     "A blank summary and placeholder plots will be generated."
                 )
             validation_report = validate_completed_human_ratings(str(completed_path))

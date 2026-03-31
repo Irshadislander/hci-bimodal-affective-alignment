@@ -1,4 +1,4 @@
-"""Smoke tests for the Day 9 emotion pipeline."""
+"""Smoke tests for the bimodal affective alignment pipeline."""
 
 from __future__ import annotations
 
@@ -22,7 +22,15 @@ from app.experiment_runner import (
     run_ablation_study,
     run_alpha_sensitivity,
 )
-from app.face_emotion import detect_face_emotion_from_image, map_deepface_emotions
+import app.face_emotion as face_emotion_module
+from app.face_emotion import (
+    detect_face_emotion_from_image,
+    get_face_fallback_distribution,
+    get_face_runtime_status,
+    initialize_face_runtime,
+    map_deepface_emotions,
+    map_face_outputs_to_project_emotions,
+)
 from app.fusion import fuse_emotions
 from app.final_report_builder import (
     build_report_result_tables,
@@ -43,11 +51,22 @@ from app.plot_results import (
     plot_human_eval_summary,
 )
 from app.report_assets import summarize_results_for_report
-from app.response_generator import generate_response
+import app.response_generator as response_generator_module
+from app.response_generator import (
+    build_response_prompt,
+    generate_response,
+    generate_response_fallback,
+    get_response_runtime_status,
+    initialize_response_runtime,
+    postprocess_generated_response,
+)
+import app.text_emotion as text_emotion_module
 from app.text_emotion import (
     EMOTIONS,
     detect_text_emotion,
     detect_text_emotion_rule_based,
+    initialize_text_runtime,
+    get_text_runtime_status,
     map_model_outputs_to_project_emotions,
 )
 
@@ -82,6 +101,73 @@ def _table_length(table) -> int:
     """Return row count for either a pandas DataFrame or a row list."""
 
     return len(table)
+
+
+def _reset_text_runtime(monkeypatch) -> None:
+    """Reset the module-level text runtime cache for isolated tests."""
+
+    monkeypatch.setattr(text_emotion_module, "_TEXT_PIPELINE", None)
+    monkeypatch.setattr(
+        text_emotion_module,
+        "_TEXT_RUNTIME_STATUS",
+        {
+            "runtime_mode": "fallback_rule_based",
+            "model_name": "SamLowe/roberta-base-go_emotions",
+            "fallback_used": True,
+            "transformer_active": False,
+            "message": (
+                "Transformer runtime has not been initialized yet. "
+                "The emergency rule-based fallback is ready if needed."
+            ),
+        },
+    )
+
+
+def _reset_face_runtime(monkeypatch) -> None:
+    """Reset the module-level face runtime cache for isolated tests."""
+
+    monkeypatch.setattr(face_emotion_module, "_FACE_ANALYZER", None)
+    monkeypatch.setattr(face_emotion_module, "_FACE_MODEL_CACHE", None)
+    monkeypatch.setattr(face_emotion_module, "_FACE_RUNTIME_INITIALIZED", False)
+    monkeypatch.setattr(face_emotion_module, "_LAST_WARNING", "")
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_FACE_RUNTIME_STATUS",
+        {
+            "runtime_mode": "fallback_rule_based",
+            "model_name": None,
+            "fallback_used": True,
+            "face_runtime_active": False,
+            "message": (
+                "Face runtime has not been initialized yet. "
+                "The image-based analyzer will activate on first use."
+            ),
+        },
+    )
+
+
+def _reset_response_runtime(monkeypatch) -> None:
+    """Reset the module-level response runtime cache for isolated tests."""
+
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_TOKENIZER", None)
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_MODEL", None)
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_DEVICE", "cpu")
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_GENERATOR", None)
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_RUNTIME_INITIALIZED", False)
+    monkeypatch.setattr(
+        response_generator_module,
+        "_RESPONSE_RUNTIME_STATUS",
+        {
+            "runtime_mode": "fallback_template",
+            "model_name": None,
+            "fallback_used": True,
+            "response_runtime_active": False,
+            "message": (
+                "Response runtime has not been initialized yet. "
+                "FLAN-T5 will be attempted on first use."
+            ),
+        },
+    )
 
 
 def _patch_final_evaluation_pack(monkeypatch, tmp_path) -> None:
@@ -328,23 +414,102 @@ def test_text_detector_rule_based_returns_dict() -> None:
     assert isclose(sum(text_probs.values()), 1.0, abs_tol=1e-6)
 
 
+def test_initialize_text_runtime_returns_transformer_status(monkeypatch) -> None:
+    """Explicit initialization should report a loaded transformer runtime."""
+
+    _reset_text_runtime(monkeypatch)
+
+    class FakePipeline:
+        def __call__(self, text, truncation=True):
+            return [
+                {"label": "joy", "score": 0.70},
+                {"label": "sadness", "score": 0.10},
+                {"label": "anger", "score": 0.05},
+                {"label": "neutral", "score": 0.10},
+                {"label": "fear", "score": 0.02},
+                {"label": "surprise", "score": 0.02},
+                {"label": "disgust", "score": 0.01},
+            ]
+
+    monkeypatch.setattr(
+        text_emotion_module,
+        "_attempt_text_runtime_initialization",
+        lambda: (
+            FakePipeline(),
+            {
+                "runtime_mode": "transformer",
+                "model_name": "fake-roberta-model",
+                "fallback_used": False,
+                "transformer_active": True,
+                "message": "Fake transformer runtime active.",
+            },
+        ),
+    )
+
+    status = initialize_text_runtime()
+    runtime_status = get_text_runtime_status()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "transformer"
+    assert status["transformer_active"] is True
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "fake-roberta-model"
+    assert runtime_status["runtime_mode"] == "transformer"
+    assert runtime_status["transformer_active"] is True
+
+
+def test_initialize_text_runtime_records_failure(monkeypatch) -> None:
+    """Initialization failures should return a safe fallback status."""
+
+    _reset_text_runtime(monkeypatch)
+
+    monkeypatch.setattr(
+        text_emotion_module,
+        "_attempt_text_runtime_initialization",
+        lambda: (
+            None,
+            {
+                "runtime_mode": "fallback_rule_based",
+                "model_name": "SamLowe/roberta-base-go_emotions",
+                "fallback_used": True,
+                "transformer_active": False,
+                "message": "Transformer text model could not be loaded. Using the emergency rule-based fallback.",
+                "load_error": "OSError: fake load failure",
+            },
+        ),
+    )
+
+    status = initialize_text_runtime()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "fallback_rule_based"
+    assert status["transformer_active"] is False
+    assert status["fallback_used"] is True
+    assert "load_error" in status
+
+
 def test_text_mapping_helper_returns_dict() -> None:
     """Transformer output mapping should return the project emotion schema."""
 
     raw_output = [
-        {"label": "joy", "score": 0.72},
-        {"label": "sadness", "score": 0.11},
-        {"label": "anger", "score": 0.05},
-        {"label": "neutral", "score": 0.08},
-        {"label": "fear", "score": 0.02},
-        {"label": "surprise", "score": 0.01},
-        {"label": "disgust", "score": 0.01},
+        {"label": "love", "score": 0.24},
+        {"label": "optimism", "score": 0.18},
+        {"label": "gratitude", "score": 0.11},
+        {"label": "approval", "score": 0.07},
+        {"label": "sadness", "score": 0.14},
+        {"label": "anger", "score": 0.09},
+        {"label": "fear", "score": 0.07},
+        {"label": "surprise", "score": 0.05},
+        {"label": "disgust", "score": 0.03},
+        {"label": "neutral", "score": 0.02},
     ]
     probs = map_model_outputs_to_project_emotions(raw_output)
 
     assert isinstance(probs, dict)
     assert set(probs) == set(EMOTIONS)
     assert isclose(sum(probs.values()), 1.0, abs_tol=1e-6)
+    assert probs["happy"] > probs["sad"]
+    assert probs["happy"] > probs["angry"]
 
 
 def test_detect_text_emotion_returns_dict(monkeypatch) -> None:
@@ -362,43 +527,228 @@ def test_detect_text_emotion_returns_dict(monkeypatch) -> None:
                 {"label": "disgust", "score": 0.01},
             ]
 
-    monkeypatch.setattr("app.text_emotion.load_text_emotion_pipeline", lambda: FakePipeline())
+    monkeypatch.setattr(
+        "app.text_emotion.load_text_emotion_pipeline",
+        lambda: (
+            FakePipeline(),
+            {
+                "runtime_mode": "transformer",
+                "model_name": "fake-roberta-model",
+                "fallback_used": False,
+                "transformer_active": True,
+                "message": "Fake transformer runtime active.",
+            },
+        ),
+    )
 
     probs = detect_text_emotion("I am excited and grateful.")
+    status = get_text_runtime_status()
 
     assert isinstance(probs, dict)
     assert set(probs) == set(EMOTIONS)
     assert isclose(sum(probs.values()), 1.0, abs_tol=1e-6)
     assert probs["happy"] > probs["sad"]
+    assert status["runtime_mode"] == "transformer"
+    assert status["transformer_active"] is True
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "fake-roberta-model"
+
+
+def test_text_runtime_status_returns_dict(monkeypatch) -> None:
+    """Runtime status helper should return a dictionary even on fallback."""
+
+    monkeypatch.setattr(
+        "app.text_emotion.load_text_emotion_pipeline",
+        lambda: (
+            None,
+            {
+                "runtime_mode": "fallback_rule_based",
+                "model_name": "fake-roberta-model",
+                "fallback_used": True,
+                "transformer_active": False,
+                "message": "Fake fallback runtime active.",
+            },
+        ),
+    )
+
+    detect_text_emotion("The model should fail gracefully.")
+    status = get_text_runtime_status()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "fallback_rule_based"
+    assert status["fallback_used"] is True
+    assert status["transformer_active"] is False
+    assert status["model_name"] == "fake-roberta-model"
+
+
+def test_face_runtime_status_returns_dict() -> None:
+    """Face runtime status should always return a dictionary."""
+
+    status = get_face_runtime_status()
+
+    assert isinstance(status, dict)
+    assert {"runtime_mode", "model_name", "fallback_used", "face_runtime_active", "message"} <= set(status)
+    assert status["runtime_mode"] == "fallback_rule_based"
+
+
+def test_initialize_face_runtime_returns_status_dict(monkeypatch) -> None:
+    """Explicit face runtime initialization should return an active status dictionary."""
+
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "deepface",
+        "model_name": "DeepFace Emotion",
+        "fallback_used": False,
+        "face_runtime_active": True,
+        "message": "DeepFace emotion model loaded successfully and cached for image inference.",
+    }
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (object(), fake_status),
+    )
+
+    status = initialize_face_runtime()
+    runtime_status = get_face_runtime_status()
+
+    assert isinstance(status, dict)
+    assert status == runtime_status
+    assert status["runtime_mode"] == "deepface"
+    assert status["face_runtime_active"] is True
+    assert status["fallback_used"] is False
+
+
+def test_initialize_face_runtime_records_backup_status(monkeypatch) -> None:
+    """Initialization failures should degrade to the image-based heuristic backup."""
+
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "image_heuristic",
+        "model_name": "Image heuristic backup",
+        "fallback_used": True,
+        "face_runtime_active": True,
+        "message": "DeepFace could not be imported. Using the image-based heuristic backup runtime.",
+        "load_error": "ModuleNotFoundError: No module named 'deepface'",
+    }
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (None, fake_status),
+    )
+
+    status = initialize_face_runtime()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "image_heuristic"
+    assert status["fallback_used"] is True
+    assert status["face_runtime_active"] is True
+    assert "load_error" in status
+
+
+def test_face_mapping_returns_dict() -> None:
+    """Face output mapping should return the project emotion schema."""
+
+    raw_output = [
+        {"label": "joy", "score": 0.40},
+        {"label": "sadness", "score": 0.18},
+        {"label": "anger", "score": 0.10},
+        {"label": "neutral", "score": 0.12},
+        {"label": "fear", "score": 0.08},
+        {"label": "surprise", "score": 0.07},
+        {"label": "disgust", "score": 0.05},
+    ]
+    mapped = map_face_outputs_to_project_emotions(raw_output)
+
+    assert isinstance(mapped, dict)
+    assert set(mapped) == set(EMOTIONS)
+    assert isclose(sum(mapped.values()), 1.0, abs_tol=1e-6)
+    assert mapped["happy"] > mapped["sad"]
 
 
 def test_face_detector_returns_dict() -> None:
     """Face fallback path should return a normalized probability dictionary."""
 
     face_probs = detect_face_emotion_from_image(None)
+    status = get_face_runtime_status()
 
     assert isinstance(face_probs, dict)
     assert set(face_probs) == set(EMOTIONS)
     assert isclose(sum(face_probs.values()), 1.0, abs_tol=1e-6)
+    assert isinstance(status, dict)
+    assert status["fallback_used"] is True
 
 
-def test_face_mapping_returns_dict() -> None:
-    """DeepFace emotion mapping should return the project emotion schema."""
+def test_face_detector_uses_active_runtime_when_image_is_present(monkeypatch) -> None:
+    """Face analysis should use the primary runtime path when inference succeeds."""
 
-    raw_emotions = {
-        "happy": 12.0,
-        "sad": 8.0,
-        "angry": 4.0,
-        "neutral": 60.0,
-        "fear": 5.0,
-        "surprise": 6.0,
-        "disgust": 5.0,
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "deepface",
+        "model_name": "DeepFace Emotion",
+        "fallback_used": False,
+        "face_runtime_active": True,
+        "message": "DeepFace emotion model loaded successfully and cached for image inference.",
     }
-    mapped = map_deepface_emotions(raw_emotions)
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (object(), fake_status),
+    )
+    monkeypatch.setattr(face_emotion_module, "_to_rgb_array", lambda image: "rgb-array")
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_run_face_inference",
+        lambda image_array: {
+            "happy": 70.0,
+            "sad": 5.0,
+            "angry": 4.0,
+            "neutral": 15.0,
+            "fear": 2.0,
+            "surprise": 2.0,
+            "disgust": 2.0,
+        },
+    )
 
-    assert isinstance(mapped, dict)
-    assert set(mapped) == set(EMOTIONS)
-    assert mapped["neutral"] == 60.0
+    face_probs = detect_face_emotion_from_image("uploaded-image")
+    status = get_face_runtime_status()
+
+    assert isinstance(face_probs, dict)
+    assert set(face_probs) == set(EMOTIONS)
+    assert isclose(sum(face_probs.values()), 1.0, abs_tol=1e-6)
+    assert status["runtime_mode"] == "deepface"
+    assert status["fallback_used"] is False
+    assert status["face_runtime_active"] is True
+
+
+def test_face_detector_falls_back_safely_on_inference_error(monkeypatch) -> None:
+    """Face analysis should fall back safely when inference fails."""
+
+    _reset_face_runtime(monkeypatch)
+    fake_status = {
+        "runtime_mode": "deepface",
+        "model_name": "DeepFace Emotion",
+        "fallback_used": False,
+        "face_runtime_active": True,
+        "message": "DeepFace emotion model loaded successfully and cached for image inference.",
+    }
+    monkeypatch.setattr(
+        face_emotion_module,
+        "_attempt_face_runtime_initialization",
+        lambda: (object(), fake_status),
+    )
+    monkeypatch.setattr(face_emotion_module, "_to_rgb_array", lambda image: "rgb-array")
+
+    def _raise_inference_error(_image_array):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(face_emotion_module, "_run_face_inference", _raise_inference_error)
+
+    face_probs = detect_face_emotion_from_image("uploaded-image")
+    status = get_face_runtime_status()
+
+    assert face_probs == get_face_fallback_distribution()
+    assert status["fallback_used"] is True
+    assert "inference_error" in status
 
 
 def test_evaluation_case_returns_dict() -> None:
@@ -541,6 +891,7 @@ def test_build_human_rating_sheet_returns_dataframe(monkeypatch, tmp_path) -> No
     rows = df.to_dict(orient="records") if hasattr(df, "to_dict") else list(df)
     first_row = rows[0]
     assert first_row["rater_id"] == ""
+    assert first_row["mode"] == "Text only"
     assert first_row["empathy_rating"] == ""
     assert first_row["helpfulness_rating"] == ""
     assert (tmp_path / "human_rating_sheet.csv").exists()
@@ -845,10 +1196,178 @@ def test_alpha_sensitivity_returns_dataframe(monkeypatch, tmp_path) -> None:
     assert (tmp_path / "alpha_sensitivity.csv").exists()
 
 
-def test_response_generator_returns_string() -> None:
-    """Response generator should return a short non-empty string."""
+def test_response_runtime_status_returns_dict(monkeypatch) -> None:
+    """Response runtime status should always return a dictionary."""
 
-    response = generate_response("I am okay, but a little tired.", "neutral")
+    _reset_response_runtime(monkeypatch)
+    status = get_response_runtime_status()
+
+    assert isinstance(status, dict)
+    assert {"runtime_mode", "model_name", "fallback_used", "response_runtime_active", "message"} <= set(status)
+    assert status["runtime_mode"] == "fallback_template"
+
+
+def test_build_response_prompt_uses_task_style_format() -> None:
+    """The response prompt should stay short and task-oriented."""
+
+    prompt = build_response_prompt("I feel stuck.", "fear")
+
+    assert prompt == (
+        "Emotion: fear. User: I feel stuck. Respond with one short empathetic sentence."
+    )
+
+
+def test_postprocess_generated_response_removes_prompt_echo() -> None:
+    """Echoed prompt text should be removed from the generated output."""
+
+    prompt = build_response_prompt("I feel overwhelmed.", "sad")
+    echoed = f"Response: {prompt} I'm sorry you're dealing with this."
+
+    cleaned = postprocess_generated_response(echoed, prompt)
+
+    assert cleaned == "I'm sorry you're dealing with this."
+
+
+def test_initialize_response_runtime_returns_status_dict(monkeypatch) -> None:
+    """Explicit response runtime initialization should report an active model."""
+
+    _reset_response_runtime(monkeypatch)
+
+    class FakeTokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
+
+        def __call__(self, prompt, return_tensors="pt", truncation=True):
+            return {"input_ids": [1, 2, 3], "attention_mask": [1, 1, 1]}
+
+        def decode(self, token_ids, skip_special_tokens=True):
+            return "I'm sorry this feels hard. We can take one small step at a time."
+
+    class FakeModel:
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+        def generate(self, **kwargs):
+            return [[1, 2, 3, 4]]
+    monkeypatch.setattr(
+        response_generator_module,
+        "_load_response_components",
+        lambda model_name: (FakeTokenizer(), FakeModel(), "cpu"),
+    )
+
+    status = initialize_response_runtime()
+
+    assert isinstance(status, dict)
+    assert status == get_response_runtime_status()
+    assert status["runtime_mode"] == "flan_t5"
+    assert status["response_runtime_active"] is True
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "google/flan-t5-base"
+
+
+def test_response_fallback_returns_string() -> None:
+    """Template fallback generation should return a short non-empty string."""
+
+    response = generate_response_fallback("I am okay, but a little tired.", "neutral")
 
     assert isinstance(response, str)
     assert response
+
+
+def test_generate_response_uses_primary_runtime(monkeypatch) -> None:
+    """Generation should use the FLAN-T5 backup model when the base model is unavailable."""
+
+    _reset_response_runtime(monkeypatch)
+
+    class FakeTokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
+
+        def __call__(self, prompt, return_tensors="pt", truncation=True):
+            return {"input_ids": [1, 2, 3], "attention_mask": [1, 1, 1]}
+
+        def decode(self, token_ids, skip_special_tokens=True):
+            prompt = build_response_prompt("I am worried about tomorrow.", "fear")
+            return f"{prompt} I'm sorry you're dealing with that."
+
+    class FakeModel:
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+        def generate(self, **kwargs):
+            return [[1, 2, 3, 4]]
+
+    def fake_load(model_name):
+        if model_name == "google/flan-t5-base":
+            raise RuntimeError("base unavailable")
+        return FakeTokenizer(), FakeModel(), "cpu"
+
+    monkeypatch.setattr(
+        response_generator_module,
+        "_load_response_components",
+        fake_load,
+    )
+
+    response = generate_response("I am worried about tomorrow.", "fear")
+    status = get_response_runtime_status()
+
+    assert isinstance(response, str)
+    assert response == "I'm sorry you're dealing with that."
+    assert status["runtime_mode"] == "flan_t5"
+    assert status["response_runtime_active"] is True
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "google/flan-t5-small"
+
+
+def test_generate_response_falls_back_on_generation_error(monkeypatch) -> None:
+    """Generation failures should safely fall back to the template generator."""
+
+    _reset_response_runtime(monkeypatch)
+
+    class FakeTokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
+
+        def __call__(self, prompt, return_tensors="pt", truncation=True):
+            return {"input_ids": [1, 2, 3], "attention_mask": [1, 1, 1]}
+
+        def decode(self, token_ids, skip_special_tokens=True):
+            return "I am sorry this is hard."
+
+    class FakeModel:
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+        def generate(self, **kwargs):
+            raise RuntimeError("boom")
+
+    fake_status = {
+        "runtime_mode": "flan_t5",
+        "model_name": "google/flan-t5-base",
+        "fallback_used": False,
+        "response_runtime_active": True,
+        "message": "FLAN-T5 response runtime loaded successfully and is ready for empathetic generation.",
+    }
+    monkeypatch.setattr(
+        response_generator_module,
+        "_load_response_components",
+        lambda model_name: (FakeTokenizer(), FakeModel(), "cpu"),
+    )
+
+    response = generate_response("I am worried about tomorrow.", "fear")
+    status = get_response_runtime_status()
+
+    assert isinstance(response, str)
+    assert response
+    assert status["fallback_used"] is True
+    assert status["response_runtime_active"] is True
+    assert "inference_error" in status

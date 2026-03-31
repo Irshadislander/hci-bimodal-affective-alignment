@@ -3,7 +3,7 @@
 ## 1. Title
 - HCI Bimodal Affective Alignment
 - Text emotion, face emotion, weighted fusion, and empathetic response generation
-- Day 9 final prototype for the course project
+- Final project prototype for the course submission
 
 Speaker notes:
 - Introduce the project as a small but serious research-style HCI prototype.
@@ -65,7 +65,7 @@ Speaker notes:
 - Outputs probabilities over the same seven emotions.
 
 Speaker notes:
-- Clarify that the Day 8 prototype uses uploaded images, not webcam capture.
+- Clarify that the prototype uses uploaded images, not webcam capture.
 - Mention the graceful fallback path so the demo does not break if a face is not detected.
 - Keep the emphasis on stable evaluation rather than model complexity.
 
@@ -136,7 +136,7 @@ Speaker notes:
 
 Speaker notes:
 - Be direct about what the system does not claim.
-- Mention the main upgrade path: stronger models, better calibration, and richer interaction.
+- Mention the main extension path: stronger models, better calibration, and richer interaction.
 - End this slide by showing that the project is intentionally designed as a research scaffold.
 
 ## 15. Conclusion

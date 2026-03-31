@@ -1,11 +1,11 @@
 case_id,user_text,text_top_emotion,face_top_emotion,fused_top_emotion,empathetic_response,case_type
-1,I am thrilled with the result and feel genuinely happy.,happy,happy,happy,"Nice, that reads as a good moment.",Congruent
-2,I feel sad and drained after losing the opportunity.,sad,sad,sad,That seems difficult. Let us focus on one small next step.,Congruent
-3,I am furious that the system keeps crashing.,angry,angry,angry,I can see frustration here. Let us slow it down.,Congruent
-4,I am nervous about the interview tomorrow.,fear,fear,fear,That sounds uncertain. I can help make the next step feel safer.,Congruent
-5,"Wow, I did not expect that announcement at all.",surprise,surprise,surprise,Interesting. We can make sense of it together.,Congruent
-6,"I am thrilled with the result, but the room felt gloomy to me.",neutral,sad,neutral,Thanks for sharing. I will keep this clear and concise.,Dissonant
-7,"I feel sad and drained after losing the opportunity, even though everyone looks upbeat.",sad,happy,happy,I am picking up a positive tone here.,Dissonant
-8,"I am angry about the delay, but the room feels calm and neutral.",angry,neutral,neutral,Thanks for sharing. I will keep this clear and concise.,Dissonant
-9,"I am okay, just checking in and moving through the day.",neutral,neutral,neutral,That seems steady. I can help with the next step.,Ambiguous
-10,"Part of me feels hopeful, part of me feels tired.",neutral,neutral,neutral,"I am getting a neutral signal, so I will keep this practical.",Ambiguous
+1,I am thrilled with the result and genuinely happy.,happy,happy,happy,"Nice, that comes across as encouraging.",Congruent
+2,I feel sad and drained after losing the opportunity.,sad,sad,sad,"That sounds heavy, and I appreciate you sharing it.",Congruent
+3,I am frustrated that the system keeps crashing.,angry,angry,angry,"That sounds tense, and I will stay concise and helpful.",Congruent
+4,I am nervous about the interview tomorrow.,fear,fear,fear,I can help reduce uncertainty by making the next step concrete.,Congruent
+5,"Wow, I did not expect that announcement at all.",surprise,surprise,surprise,That feels unexpected. We can unpack it together.,Congruent
+6,"I am thrilled with the result, even though the atmosphere around me feels gloomy.",neutral,sad,neutral,That seems steady. I can help with the next step.,Dissonant
+7,"I feel sad and drained after losing the opportunity, even though the people around me seem upbeat.",sad,happy,happy,That sounds genuinely positive. I am glad things are going well.,Dissonant
+8,"I am frustrated about the delay, even though everything around me feels calm.",angry,neutral,neutral,That seems steady. I can help with the next step.,Dissonant
+9,"I am okay, just checking in and moving through the day.",neutral,neutral,neutral,"This reads as neutral, so I will keep the response practical.",Ambiguous
+10,"Part of me feels hopeful, part of me feels tired.",neutral,neutral,neutral,That seems steady. I can help with the next step.,Ambiguous

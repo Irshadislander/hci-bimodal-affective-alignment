@@ -52,4 +52,4 @@
 - If the image analysis fails, explain that the prototype already includes a safe neutral fallback.
 - If the transformer model is unavailable, explain that the text module falls back to a rule-based detector.
 - If Streamlit cannot launch, open the generated CSVs and markdown files directly.
-- If time is short, show the case studies and the final report draft first, then summarize the pipeline verbally.
+- If time is limited, show the case studies and the final report draft first, then summarize the pipeline verbally.

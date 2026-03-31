@@ -1,4 +1,4 @@
-"""Human evaluation template helpers for the Day 7 prototype."""
+"""Human evaluation template helpers for the project."""
 
 from __future__ import annotations
 

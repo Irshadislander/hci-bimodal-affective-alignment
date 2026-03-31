@@ -1,4 +1,4 @@
-"""Case-study generation helpers for the Day 7 prototype."""
+"""Case-study generation helpers for the project."""
 
 from __future__ import annotations
 
@@ -98,7 +98,7 @@ _FACE_PROFILES = {
 
 DEFAULT_CASE_STUDIES = [
     {
-        "user_text": "I am thrilled with the result and feel genuinely happy.",
+        "user_text": "I am thrilled with the result and genuinely happy.",
         "case_type": "Congruent",
         "face_profile": "happy",
     },
@@ -108,7 +108,7 @@ DEFAULT_CASE_STUDIES = [
         "face_profile": "sad",
     },
     {
-        "user_text": "I am furious that the system keeps crashing.",
+        "user_text": "I am frustrated that the system keeps crashing.",
         "case_type": "Congruent",
         "face_profile": "angry",
     },
@@ -123,17 +123,17 @@ DEFAULT_CASE_STUDIES = [
         "face_profile": "surprise",
     },
     {
-        "user_text": "I am thrilled with the result, but the room felt gloomy to me.",
+        "user_text": "I am thrilled with the result, even though the atmosphere around me feels gloomy.",
         "case_type": "Dissonant",
         "face_profile": "sad",
     },
     {
-        "user_text": "I feel sad and drained after losing the opportunity, even though everyone looks upbeat.",
+        "user_text": "I feel sad and drained after losing the opportunity, even though the people around me seem upbeat.",
         "case_type": "Dissonant",
         "face_profile": "happy",
     },
     {
-        "user_text": "I am angry about the delay, but the room feels calm and neutral.",
+        "user_text": "I am frustrated about the delay, even though everything around me feels calm.",
         "case_type": "Dissonant",
         "face_profile": "neutral",
     },

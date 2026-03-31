@@ -1,92 +1,147 @@
 # HCI Bimodal Affective Alignment
 
-This project is a mini research-style Human-Computer Interaction system that combines:
-- pretrained transformer-based text emotion recognition when available
-- facial emotion recognition
-- weighted emotion fusion
-- empathetic response generation
+## 1. Project Title
+HCI Bimodal Affective Alignment is a multimodal Human-Computer Interaction project that combines text emotion analysis, facial emotion analysis, weighted fusion, and empathetic response generation in a transparent research prototype.
 
-## Project Goal
-To build a bimodal affective alignment system that improves emotional understanding in human-computer interaction.
+## 2. Overview
+This repository contains a compact academic prototype for studying whether a bimodal affective pipeline can produce more interpretable and socially useful emotion-aware interaction than unimodal baselines. The system accepts user text and an uploaded facial image, estimates emotion probabilities for each modality, fuses the results, and generates a short supportive response.
 
-## Setup
+The project is designed for both demonstration and evaluation. The Streamlit application presents the live interaction flow, while the supporting modules generate report-ready CSV tables, plots, human-rating sheets, case studies, and presentation assets.
+
+## 3. Motivation
+Emotion-aware interfaces often receive incomplete or ambiguous signals from a single input channel. Text can be expressive but missing visual context, while facial cues can be informative but unavailable or noisy. This project studies a transparent weighted-fusion baseline that keeps the decision process easy to inspect, explain, and evaluate in an HCI setting.
+
+## 4. System Architecture
+The system is organized into small modules with clear responsibilities:
+- `app/text_emotion.py` for transformer-first text emotion runtime
+- `app/face_emotion.py` for image-based facial emotion analysis, with DeepFace as the primary runtime and a safe fallback only when face loading or detection fails
+- `app/fusion.py` for weighted late fusion
+- `app/response_generator.py` for FLAN-T5-first empathetic response generation with a safe fallback
+- `app/evaluation.py`, `app/experiment_runner.py`, `app/case_studies.py`, `app/human_eval.py`, and `app/final_evaluation_pack.py` for evaluation assets
+- `app/report_assets.py`, `app/plot_results.py`, and `app/final_report_builder.py` for report and presentation outputs
+- `app/main.py` for the Streamlit interface
+
+## 5. Core Capabilities
+- Transformer-first text emotion analysis with emergency-only rule-based fallback
+- Image-based facial emotion analysis with DeepFace as the primary runtime and safe fallback only for failure recovery
+- Weighted fusion across the seven emotion classes
+- FLAN-T5-first empathetic response generation with fallback only for load or generation failure
+- Ablation study support
+- Alpha sensitivity analysis
+- Case-study generation
+- Human evaluation template and aggregation support
+- Report and presentation asset generation
+
+## 6. Evaluation Workflow
+The repository includes a structured evaluation pipeline for the final course submission:
+- fixed-alpha ablation study
+- alpha sensitivity sweep
+- case-study generation
+- mode comparison tables
+- human evaluation templates and summaries
+- report tables and report status exports
+
+These outputs are saved under `experiments/` and reused in the report and presentation drafts.
+
+## 7. Repository Structure
+```text
+hci-bimodal-affective-alignment/
+├── app/                  # Streamlit app, model helpers, evaluation utilities, report builders
+├── docs/                 # Report drafts, presentation drafts, instructions, and project references
+├── experiments/          # Generated CSV files and PNG plots
+├── tests/                # Offline-safe smoke tests
+├── README.md             # Project overview and usage guide
+└── run.sh                # Convenience script for launching the app
+```
+
+## 8. Setup
+Create the environment and install dependencies:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
 
-## Run
+If you prefer a single launch command after the environment is ready:
+
+```bash
 ./run.sh
+```
 
-## Facial Input
-- Upload a face image in the Streamlit app to run image-based facial emotion analysis.
-- If no image is uploaded, the app uses a safe neutral fallback distribution for the face signal.
+## 9. Running the Application
+Launch the Streamlit demo directly:
 
-## Text Emotion
-- The app uses a pretrained HuggingFace text emotion model when available.
-- If model loading fails, it falls back to the rule-based detector automatically.
+```bash
+streamlit run app/main.py
+```
 
-## Running Evaluation Tools
-- Open the Streamlit app and use the `Prototype Evaluation Tools` section.
-- `Run Ablation Study` saves a fixed-alpha comparison across the default case set.
-- `Run Alpha Sensitivity` saves a sweep across the default alpha grid.
+For a headless local check:
 
-## Human Evaluation Template Generation
-- Open the Streamlit app and use the `Human Evaluation and Case Studies` section.
-- `Generate Human Evaluation Template` builds a blank reviewer sheet with empathy, social presence, and trust fields.
-- The template is based on the current case-study table and is ready for manual scoring.
+```bash
+streamlit run app/main.py --server.headless true --browser.gatherUsageStats false --server.port 8501
+```
 
-## Case Study Generation
-- `Generate Case Study Table` builds a compact set of congruent, dissonant, and ambiguous examples.
-- The table is designed for report writing and presentation examples.
-- Each row includes the text, text emotion, face emotion, fused emotion, and empathetic response.
+## 10. Human Evaluation Workflow
+Use `docs/human_rating_instructions.md` before collecting ratings.
 
-## Final Human Evaluation Workflow
-- Open the Streamlit app and use the `Final Human Evaluation Pack` section.
-- `Generate Mode Comparison Cases` creates one row per case with text-only, face-only, and fused responses.
-- `Generate Human Rating Sheet` creates a long-form reviewer sheet with blank rating fields.
-- `Aggregate Completed Human Ratings` reads `experiments/human_rating_sheet_completed.csv`, validates it, and writes the summary table.
-- Ask 4-8 raters to score empathy, social presence, trust, and helpfulness on a 1-5 scale.
+Recommended workflow:
+1. Generate `experiments/human_rating_sheet.csv` from the app.
+2. Share the sheet with each evaluator.
+3. Ask each evaluator to keep one consistent `rater_id` across all rows.
+4. Collect completed ratings in `experiments/human_rating_sheet_completed.csv`.
+5. Run `Aggregate Completed Human Ratings` in the app to produce `experiments/human_eval_summary.csv` and the corresponding plots.
+6. Treat `Text only`, `Face only`, and `Fused` as the comparison modes in the sheet.
 
-## Generating Report Assets
-- Run the evaluation tools first so the CSVs exist in `experiments/`.
-- Load the saved CSVs with `app.report_assets` to compute a short report summary.
-- Use `app.plot_results` to generate the report-ready PNG plots in `experiments/`.
-- Use `app.final_report_builder` to export `docs/report_tables.md` and `docs/report_status.md`.
-- The first serious report draft is saved at `docs/final_report_draft.md`.
-- The final presentation draft is saved at `docs/final_presentation_draft.md`.
-- The demo script is saved at `docs/demo_script.md`.
-- The results-summary draft is saved at `docs/results_summary_draft.md`.
+The rating dimensions are:
+- empathy
+- social presence
+- trust
+- helpfulness
 
-## Report Assets
-- `docs/final_report_draft.md` is the near-final written report draft.
-- `docs/report_tables.md` can be generated from the experiment CSVs with `app.final_report_builder.export_report_tables_markdown()`.
-- `docs/report_status.md` can be generated with `app.final_report_builder.export_report_status()`.
-- `docs/results_summary_draft.md` provides a short narrative for the results section.
+Each dimension is rated on a 1-5 scale.
 
-## Presentation Assets
-- `docs/final_presentation_draft.md` is the near-final slide-by-slide draft.
-- `docs/demo_script.md` gives the exact order for the live demo.
-- `docs/team_roles_and_work_split.md` records a simple project role mapping and status snapshot.
+## 11. Report and Presentation Assets
+The repository includes a complete documentation package for the final submission:
+- `docs/final_report_draft.md`
+- `docs/report_tables.md`
+- `docs/report_status.md`
+- `docs/final_presentation_draft.md`
+- `docs/demo_script.md`
+- `docs/results_summary_draft.md`
+- `docs/project_overview.md`
+- `docs/current_status.md`
+- `docs/repository_guide.md`
+- `docs/final_artifacts_index.md`
+- `docs/final_report_submission_checklist.md`
+- `docs/human_rating_instructions.md`
 
-## CSV Outputs
-- Ablation results are saved to `experiments/ablation_results.csv`
-- Alpha sensitivity results are saved to `experiments/alpha_sensitivity.csv`
-- Human evaluation templates are saved to `experiments/human_eval_template.csv`
-- Case study tables are saved to `experiments/case_studies.csv`
-- Mode comparison cases are saved to `experiments/mode_comparison_cases.csv`
-- Human rating sheets are saved to `experiments/human_rating_sheet.csv`
-- Completed human rating sheets are read from `experiments/human_rating_sheet_completed.csv`
-- Human evaluation summaries are saved to `experiments/human_eval_summary.csv`
-- Human evaluation plots are saved to `experiments/human_eval_summary_plot.png` and `experiments/helpfulness_summary_plot.png`
-- Plot outputs are saved to `experiments/ablation_counts.png`, `experiments/alpha_sensitivity_plot.png`, and `experiments/case_type_distribution.png`
+## 12. Generated Outputs
+Key generated files are stored as follows:
+- `experiments/ablation_results.csv`
+- `experiments/alpha_sensitivity.csv`
+- `experiments/case_studies.csv`
+- `experiments/mode_comparison_cases.csv`
+- `experiments/human_rating_sheet.csv`
+- `experiments/human_rating_sheet_completed.csv`
+- `experiments/human_eval_summary.csv`
+- `experiments/ablation_counts.png`
+- `experiments/alpha_sensitivity_plot.png`
+- `experiments/case_type_distribution.png`
+- `experiments/human_eval_summary_plot.png`
+- `experiments/helpfulness_summary_plot.png`
+- `docs/report_tables.md`
+- `docs/report_status.md`
 
-## Human Rating Workflow
-- Generate `experiments/mode_comparison_cases.csv` from the final evaluation pack.
-- Generate `experiments/human_rating_sheet.csv` for raters to fill in.
-- Collect completed scores in `experiments/human_rating_sheet_completed.csv`.
-- Run the aggregation step to create `experiments/human_eval_summary.csv`.
-- If completed ratings are available, the final report should insert the averaged empathy, social presence, trust, and helpfulness results.
+## 13. Current Status
+The full pipeline is implemented and the application runs end to end. The repository already contains the text emotion module, face emotion module, fusion layer, response generator, evaluation workflows, case studies, human evaluation template, report draft, presentation draft, demo script, report tables, and report status exports.
 
-## Final Submission Checklist
-- Use `docs/final_report_submission_checklist.md` as the final packaging checklist.
-- Verify that the report, slides, CSVs, plots, and demo backup are all ready before submission.
+The remaining manual step is to collect completed human ratings, aggregate them, and insert the resulting averages into the final report if the evaluation is conducted before submission.
+
+## 14. Future Extensions
+The current prototype is a strong baseline, and it can be extended in several directions:
+- replace fallback text and facial logic with stronger models if needed
+- improve calibration and confidence reporting
+- support richer human evaluation studies
+- explore additional modalities or datasets
+- refine response generation for deeper interaction studies

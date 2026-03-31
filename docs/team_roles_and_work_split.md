@@ -1,15 +1,15 @@
 # HCI Bimodal Affective Alignment
 
 ## Final Output Summary
-This project is now a complete mini research-style prototype with text emotion recognition, image-based facial emotion analysis, weighted fusion, empathetic response generation, ablation studies, case studies, human-evaluation support, report assets, presentation assets, and a final submission checklist.
+This project is now a complete research-oriented prototype with text emotion recognition, image-based facial emotion analysis, weighted fusion, empathetic response generation, ablation studies, case studies, human-evaluation support, report assets, presentation assets, and a final submission checklist.
 
 ## Suggested Role Mapping
-- Irshad = technical lead, integration, report structure, final demo
+- Irshad = technical lead, integration, report structure, final demo coordination
 - Member 2 = text emotion module, transformer fallback support, literature support
 - Member 3 = face module, image analysis support, testing support
 - Daniel = documentation, setup, storage, evaluation coordination
 
-## Current Project Status After Day 9
+## Current Project Status
 - The app runs end to end in Streamlit
 - The text module supports transformer-first inference with fallback
 - The face module supports image upload with fallback
