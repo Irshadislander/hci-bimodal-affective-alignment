@@ -44,10 +44,12 @@ from app.plot_results import (
 )
 from app.report_assets import summarize_results_for_report
 from app.response_generator import generate_response
+import app.text_emotion as text_emotion_module
 from app.text_emotion import (
     EMOTIONS,
     detect_text_emotion,
     detect_text_emotion_rule_based,
+    initialize_text_runtime,
     get_text_runtime_status,
     map_model_outputs_to_project_emotions,
 )
@@ -83,6 +85,26 @@ def _table_length(table) -> int:
     """Return row count for either a pandas DataFrame or a row list."""
 
     return len(table)
+
+
+def _reset_text_runtime(monkeypatch) -> None:
+    """Reset the module-level text runtime cache for isolated tests."""
+
+    monkeypatch.setattr(text_emotion_module, "_TEXT_PIPELINE", None)
+    monkeypatch.setattr(
+        text_emotion_module,
+        "_TEXT_RUNTIME_STATUS",
+        {
+            "runtime_mode": "fallback_rule_based",
+            "model_name": "SamLowe/roberta-base-go_emotions",
+            "fallback_used": True,
+            "transformer_active": False,
+            "message": (
+                "Transformer runtime has not been initialized yet. "
+                "The emergency rule-based fallback is ready if needed."
+            ),
+        },
+    )
 
 
 def _patch_final_evaluation_pack(monkeypatch, tmp_path) -> None:
@@ -329,6 +351,80 @@ def test_text_detector_rule_based_returns_dict() -> None:
     assert isclose(sum(text_probs.values()), 1.0, abs_tol=1e-6)
 
 
+def test_initialize_text_runtime_returns_transformer_status(monkeypatch) -> None:
+    """Explicit initialization should report a loaded transformer runtime."""
+
+    _reset_text_runtime(monkeypatch)
+
+    class FakePipeline:
+        def __call__(self, text, truncation=True):
+            return [
+                {"label": "joy", "score": 0.70},
+                {"label": "sadness", "score": 0.10},
+                {"label": "anger", "score": 0.05},
+                {"label": "neutral", "score": 0.10},
+                {"label": "fear", "score": 0.02},
+                {"label": "surprise", "score": 0.02},
+                {"label": "disgust", "score": 0.01},
+            ]
+
+    monkeypatch.setattr(
+        text_emotion_module,
+        "_attempt_text_runtime_initialization",
+        lambda: (
+            FakePipeline(),
+            {
+                "runtime_mode": "transformer",
+                "model_name": "fake-roberta-model",
+                "fallback_used": False,
+                "transformer_active": True,
+                "message": "Fake transformer runtime active.",
+            },
+        ),
+    )
+
+    status = initialize_text_runtime()
+    runtime_status = get_text_runtime_status()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "transformer"
+    assert status["transformer_active"] is True
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "fake-roberta-model"
+    assert runtime_status["runtime_mode"] == "transformer"
+    assert runtime_status["transformer_active"] is True
+
+
+def test_initialize_text_runtime_records_failure(monkeypatch) -> None:
+    """Initialization failures should return a safe fallback status."""
+
+    _reset_text_runtime(monkeypatch)
+
+    monkeypatch.setattr(
+        text_emotion_module,
+        "_attempt_text_runtime_initialization",
+        lambda: (
+            None,
+            {
+                "runtime_mode": "fallback_rule_based",
+                "model_name": "SamLowe/roberta-base-go_emotions",
+                "fallback_used": True,
+                "transformer_active": False,
+                "message": "Transformer text model could not be loaded. Using the emergency rule-based fallback.",
+                "load_error": "OSError: fake load failure",
+            },
+        ),
+    )
+
+    status = initialize_text_runtime()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "fallback_rule_based"
+    assert status["transformer_active"] is False
+    assert status["fallback_used"] is True
+    assert "load_error" in status
+
+
 def test_text_mapping_helper_returns_dict() -> None:
     """Transformer output mapping should return the project emotion schema."""
 
@@ -390,6 +486,7 @@ def test_detect_text_emotion_returns_dict(monkeypatch) -> None:
     assert isclose(sum(probs.values()), 1.0, abs_tol=1e-6)
     assert probs["happy"] > probs["sad"]
     assert status["runtime_mode"] == "transformer"
+    assert status["transformer_active"] is True
     assert status["fallback_used"] is False
     assert status["model_name"] == "fake-roberta-model"
 
@@ -417,6 +514,7 @@ def test_text_runtime_status_returns_dict(monkeypatch) -> None:
     assert isinstance(status, dict)
     assert status["runtime_mode"] == "fallback_rule_based"
     assert status["fallback_used"] is True
+    assert status["transformer_active"] is False
     assert status["model_name"] == "fake-roberta-model"
 
 

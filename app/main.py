@@ -114,6 +114,7 @@ def _render_text_runtime_status(st, runtime_status: dict[str, object]) -> None:
     runtime_mode = str(runtime_status.get("runtime_mode", "fallback_rule_based"))
     model_name = runtime_status.get("model_name") or "Unavailable"
     fallback_used = bool(runtime_status.get("fallback_used", False))
+    reason = runtime_status.get("load_error") or runtime_status.get("inference_error")
 
     st.markdown("#### Text Runtime Status")
     status_cols = st.columns(2)
@@ -121,10 +122,18 @@ def _render_text_runtime_status(st, runtime_status: dict[str, object]) -> None:
     status_cols[1].metric("Model", str(model_name))
 
     if fallback_used:
-        st.warning(
-            "The transformer runtime was not available for this run, so the "
-            "emergency rule-based fallback produced the text emotion distribution."
-        )
+        if runtime_mode == "transformer" and runtime_status.get("transformer_active", False):
+            st.warning(
+                "The transformer runtime is active, but this analysis fell back "
+                "to the emergency rule-based detector."
+            )
+        else:
+            st.warning(
+                "The transformer runtime was not available for this run, so the "
+                "emergency rule-based fallback produced the text emotion distribution."
+            )
+        if reason:
+            st.caption(f"Reason: {reason}")
     else:
         st.success(
             "The transformer runtime is active and provided the text emotion "

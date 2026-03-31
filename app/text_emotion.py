@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from functools import lru_cache
 from typing import Any
 
 try:
@@ -14,6 +13,8 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
 EMOTIONS = ["happy", "sad", "angry", "neutral", "fear", "surprise", "disgust"]
 
 _TEXT_MODEL_NAME = "SamLowe/roberta-base-go_emotions"
+
+_TEXT_PIPELINE: Any | None = None
 
 
 def _make_runtime_status(
@@ -48,6 +49,15 @@ _TEXT_RUNTIME_STATUS = _make_runtime_status(
         "The emergency rule-based fallback is ready if needed."
     ),
 )
+
+
+def _short_error_message(exc: BaseException, limit: int = 220) -> str:
+    """Return a short, readable error message for runtime status records."""
+
+    message = f"{exc.__class__.__name__}: {exc}"
+    if len(message) <= limit:
+        return message
+    return f"{message[: limit - 3].rstrip()}..."
 
 
 _MODEL_LABEL_TO_PROJECT = {
@@ -320,24 +330,87 @@ def _flatten_pipeline_output(raw_output: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _make_transformer_metadata(
-    *,
-    message: str,
-    fallback_used: bool,
-    transformer_active: bool,
-    model_name: str | None = None,
-    load_error: str | None = None,
-) -> dict[str, Any]:
-    """Create runtime metadata for either the transformer or fallback path."""
+def _attempt_text_runtime_initialization() -> tuple[Any | None, dict[str, Any]]:
+    """Load the Hugging Face text pipeline and build the matching status."""
 
-    return _make_runtime_status(
-        runtime_mode="transformer" if transformer_active else "fallback_rule_based",
-        fallback_used=fallback_used,
-        transformer_active=transformer_active,
-        message=message,
-        model_name=model_name if model_name is not None else _TEXT_MODEL_NAME,
-        load_error=load_error,
+    try:
+        from transformers import pipeline
+    except Exception as exc:
+        metadata = _make_runtime_status(
+            runtime_mode="fallback_rule_based",
+            fallback_used=True,
+            transformer_active=False,
+            message=(
+                "Transformers is unavailable. "
+                "Using the emergency rule-based fallback."
+            ),
+            model_name=_TEXT_MODEL_NAME,
+            load_error=_short_error_message(exc),
+        )
+        _set_runtime_status(metadata)
+        return None, metadata
+
+    try:
+        classifier = pipeline(
+            "text-classification",
+            model=_TEXT_MODEL_NAME,
+            tokenizer=_TEXT_MODEL_NAME,
+            top_k=None,
+            device=-1,
+        )
+    except Exception as exc:
+        metadata = _make_runtime_status(
+            runtime_mode="fallback_rule_based",
+            fallback_used=True,
+            transformer_active=False,
+            message=(
+                "Transformer text model could not be loaded. "
+                "Using the emergency rule-based fallback."
+            ),
+            model_name=_TEXT_MODEL_NAME,
+            load_error=_short_error_message(exc),
+        )
+        _set_runtime_status(metadata)
+        return None, metadata
+
+    metadata = _make_runtime_status(
+        runtime_mode="transformer",
+        fallback_used=False,
+        transformer_active=True,
+        message=(
+            "Transformer runtime is active. "
+            f"Loaded {_TEXT_MODEL_NAME} for text emotion inference."
+        ),
+        model_name=_TEXT_MODEL_NAME,
     )
+    _set_runtime_status(metadata)
+    return classifier, metadata
+
+
+def initialize_text_runtime() -> dict[str, Any]:
+    """Explicitly initialize and cache the transformer-based text runtime."""
+
+    global _TEXT_PIPELINE
+
+    if _TEXT_PIPELINE is not None and _TEXT_RUNTIME_STATUS.get("transformer_active"):
+        return dict(_TEXT_RUNTIME_STATUS)
+
+    classifier, metadata = _attempt_text_runtime_initialization()
+    _TEXT_PIPELINE = classifier
+    _set_runtime_status(metadata)
+    return dict(metadata)
+
+
+def load_text_emotion_pipeline() -> tuple[Any | None, dict[str, Any]]:
+    """Load and cache the Hugging Face text-classification pipeline.
+
+    Returns the cached pipeline object and the current runtime metadata. The
+    first call explicitly attempts transformer initialization so that the
+    runtime can report success or failure immediately.
+    """
+
+    initialize_text_runtime()
+    return _TEXT_PIPELINE, dict(_TEXT_RUNTIME_STATUS)
 
 
 def _coerce_loaded_runtime(load_result: Any) -> tuple[Any | None, dict[str, Any]]:
@@ -349,99 +422,9 @@ def _coerce_loaded_runtime(load_result: Any) -> tuple[Any | None, dict[str, Any]
             return classifier, dict(metadata)
 
     if load_result is None:
-        metadata = _make_transformer_metadata(
-            message=(
-                "Transformer runtime is unavailable. "
-                "Using the emergency rule-based fallback."
-            ),
-            fallback_used=True,
-            transformer_active=False,
-        )
-        return None, metadata
+        return None, dict(_TEXT_RUNTIME_STATUS)
 
-    metadata = _make_transformer_metadata(
-        message=(
-            "Transformer runtime is active. "
-            "Using the pretrained text emotion model."
-        ),
-        fallback_used=False,
-        transformer_active=True,
-    )
-    return load_result, metadata
-
-
-@lru_cache(maxsize=1)
-def _cached_text_emotion_pipeline() -> tuple[Any | None, dict[str, Any]]:
-    """Load the Hugging Face text-classification pipeline and cache the result."""
-
-    try:
-        from transformers import (
-            AutoModelForSequenceClassification,
-            AutoTokenizer,
-            pipeline,
-        )
-    except Exception as exc:
-        metadata = _make_transformer_metadata(
-            message=(
-                "Transformers is unavailable. "
-                "Using the emergency rule-based fallback."
-            ),
-            fallback_used=True,
-            transformer_active=False,
-            load_error=str(exc),
-        )
-        _set_runtime_status(metadata)
-        return None, metadata
-
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(_TEXT_MODEL_NAME)
-        model = AutoModelForSequenceClassification.from_pretrained(_TEXT_MODEL_NAME)
-        classifier = pipeline(
-            "text-classification",
-            model=model,
-            tokenizer=tokenizer,
-            top_k=None,
-            device=-1,
-        )
-    except Exception as exc:
-        metadata = _make_transformer_metadata(
-            message=(
-                "Transformer text model could not be loaded. "
-                "Using the emergency rule-based fallback."
-            ),
-            fallback_used=True,
-            transformer_active=False,
-            load_error=str(exc),
-        )
-        _set_runtime_status(metadata)
-        return None, metadata
-
-    metadata = _make_transformer_metadata(
-        message=(
-            "Transformer runtime is active. "
-            f"Loaded {_TEXT_MODEL_NAME} for text emotion inference."
-        ),
-        fallback_used=False,
-        transformer_active=True,
-    )
-    _set_runtime_status(metadata)
-    return classifier, metadata
-
-
-def load_text_emotion_pipeline() -> tuple[Any | None, dict[str, Any]]:
-    """Load the Hugging Face text-classification pipeline and cache it.
-
-    Returns
-    -------
-    tuple
-        A pair of ``(pipeline_object, metadata)``. The metadata records whether
-        the transformer runtime is active and what model is intended for the
-        text sensor. If loading fails, the pipeline object is ``None`` and the
-        metadata marks the emergency rule-based fallback as active.
-    """
-
-    classifier, metadata = _cached_text_emotion_pipeline()
-    return classifier, dict(metadata)
+    return load_result, dict(_TEXT_RUNTIME_STATUS)
 
 
 def map_model_outputs_to_project_emotions(raw_output) -> dict[str, float]:
@@ -489,22 +472,9 @@ def detect_text_emotion_rule_based(text: str) -> dict[str, float]:
     This path is intentionally conservative. It is only meant to recover a
     usable seven-class distribution when transformer loading or inference is
     unavailable. The detector uses small keyword banks, light neutral hints,
-    and a few punctuation cues so that repeated demos remain predictable.
+    and a few punctuation cues so that repeated demos remain predictable. It
+    does not mutate the runtime status; the caller owns any status updates.
     """
-
-    current_status = get_text_runtime_status()
-    model_name = str(current_status.get("model_name") or _TEXT_MODEL_NAME)
-    _set_runtime_status(
-        _make_transformer_metadata(
-            message=(
-                "Using the emergency rule-based fallback because transformer "
-                "inference is unavailable."
-            ),
-            fallback_used=True,
-            transformer_active=False,
-            model_name=model_name,
-        )
-    )
 
     normalized_text = _clean_text(text)
     raw_text = text or ""
@@ -560,20 +530,35 @@ def detect_text_emotion(text: str) -> dict[str, float]:
         try:
             raw_output = classifier(text or "", truncation=True)
             mapped = map_model_outputs_to_project_emotions(raw_output)
-            _set_runtime_status(metadata)
+            success_status = dict(metadata)
+            success_status.update(
+                {
+                    "runtime_mode": "transformer",
+                    "transformer_active": True,
+                    "fallback_used": False,
+                    "message": (
+                        "Transformer runtime is active. "
+                        f"Loaded {_TEXT_MODEL_NAME} for text emotion inference."
+                    ),
+                }
+            )
+            _set_runtime_status(success_status)
             return mapped
         except Exception as exc:
-            fallback_metadata = _make_transformer_metadata(
-                message=(
-                    "Transformer inference failed for this input. "
-                    "Using the emergency rule-based fallback."
-                ),
-                fallback_used=True,
-                transformer_active=False,
-                model_name=str(metadata.get("model_name") or _TEXT_MODEL_NAME),
-                load_error=str(exc),
+            fallback_status = dict(metadata)
+            fallback_status.update(
+                {
+                    "runtime_mode": "transformer",
+                    "transformer_active": True,
+                    "fallback_used": True,
+                    "message": (
+                        "Transformer inference failed for this input. "
+                        "Using the emergency rule-based fallback."
+                    ),
+                    "inference_error": _short_error_message(exc),
+                }
             )
-            _set_runtime_status(fallback_metadata)
+            _set_runtime_status(fallback_status)
             return detect_text_emotion_rule_based(text)
 
     _set_runtime_status(metadata)
