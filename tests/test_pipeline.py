@@ -48,6 +48,7 @@ from app.text_emotion import (
     EMOTIONS,
     detect_text_emotion,
     detect_text_emotion_rule_based,
+    get_text_runtime_status,
     map_model_outputs_to_project_emotions,
 )
 
@@ -332,19 +333,24 @@ def test_text_mapping_helper_returns_dict() -> None:
     """Transformer output mapping should return the project emotion schema."""
 
     raw_output = [
-        {"label": "joy", "score": 0.72},
-        {"label": "sadness", "score": 0.11},
-        {"label": "anger", "score": 0.05},
-        {"label": "neutral", "score": 0.08},
-        {"label": "fear", "score": 0.02},
-        {"label": "surprise", "score": 0.01},
-        {"label": "disgust", "score": 0.01},
+        {"label": "love", "score": 0.24},
+        {"label": "optimism", "score": 0.18},
+        {"label": "gratitude", "score": 0.11},
+        {"label": "approval", "score": 0.07},
+        {"label": "sadness", "score": 0.14},
+        {"label": "anger", "score": 0.09},
+        {"label": "fear", "score": 0.07},
+        {"label": "surprise", "score": 0.05},
+        {"label": "disgust", "score": 0.03},
+        {"label": "neutral", "score": 0.02},
     ]
     probs = map_model_outputs_to_project_emotions(raw_output)
 
     assert isinstance(probs, dict)
     assert set(probs) == set(EMOTIONS)
     assert isclose(sum(probs.values()), 1.0, abs_tol=1e-6)
+    assert probs["happy"] > probs["sad"]
+    assert probs["happy"] > probs["angry"]
 
 
 def test_detect_text_emotion_returns_dict(monkeypatch) -> None:
@@ -362,14 +368,56 @@ def test_detect_text_emotion_returns_dict(monkeypatch) -> None:
                 {"label": "disgust", "score": 0.01},
             ]
 
-    monkeypatch.setattr("app.text_emotion.load_text_emotion_pipeline", lambda: FakePipeline())
+    monkeypatch.setattr(
+        "app.text_emotion.load_text_emotion_pipeline",
+        lambda: (
+            FakePipeline(),
+            {
+                "runtime_mode": "transformer",
+                "model_name": "fake-roberta-model",
+                "fallback_used": False,
+                "transformer_active": True,
+                "message": "Fake transformer runtime active.",
+            },
+        ),
+    )
 
     probs = detect_text_emotion("I am excited and grateful.")
+    status = get_text_runtime_status()
 
     assert isinstance(probs, dict)
     assert set(probs) == set(EMOTIONS)
     assert isclose(sum(probs.values()), 1.0, abs_tol=1e-6)
     assert probs["happy"] > probs["sad"]
+    assert status["runtime_mode"] == "transformer"
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "fake-roberta-model"
+
+
+def test_text_runtime_status_returns_dict(monkeypatch) -> None:
+    """Runtime status helper should return a dictionary even on fallback."""
+
+    monkeypatch.setattr(
+        "app.text_emotion.load_text_emotion_pipeline",
+        lambda: (
+            None,
+            {
+                "runtime_mode": "fallback_rule_based",
+                "model_name": "fake-roberta-model",
+                "fallback_used": True,
+                "transformer_active": False,
+                "message": "Fake fallback runtime active.",
+            },
+        ),
+    )
+
+    detect_text_emotion("The model should fail gracefully.")
+    status = get_text_runtime_status()
+
+    assert isinstance(status, dict)
+    assert status["runtime_mode"] == "fallback_rule_based"
+    assert status["fallback_used"] is True
+    assert status["model_name"] == "fake-roberta-model"
 
 
 def test_face_detector_returns_dict() -> None:

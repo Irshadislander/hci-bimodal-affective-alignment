@@ -13,7 +13,7 @@ Emotion-aware interfaces often receive incomplete or ambiguous signals from a si
 
 ## 4. System Architecture
 The system is organized into small modules with clear responsibilities:
-- `app/text_emotion.py` for text emotion analysis
+- `app/text_emotion.py` for transformer-first text emotion runtime
 - `app/face_emotion.py` for image-based facial emotion analysis
 - `app/fusion.py` for weighted late fusion
 - `app/response_generator.py` for empathetic response generation
@@ -22,7 +22,7 @@ The system is organized into small modules with clear responsibilities:
 - `app/main.py` for the Streamlit interface
 
 ## 5. Core Capabilities
-- Transformer-first text emotion analysis with graceful fallback
+- Transformer-first text emotion analysis with emergency-only rule-based fallback
 - Image-based facial emotion analysis with safe fallback behavior
 - Weighted fusion across the seven emotion classes
 - Short empathetic response generation

@@ -37,7 +37,7 @@ try:
     from app.response_generator import generate_response
     from app.text_emotion import (
         detect_text_emotion,
-        get_text_emotion_backend_status,
+        get_text_runtime_status,
     )
     from app.plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from app.utils import probs_to_dataframe
@@ -68,7 +68,7 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
     )
     from fusion import get_top_n_emotions, fuse_emotions
     from response_generator import generate_response
-    from text_emotion import detect_text_emotion, get_text_emotion_backend_status
+    from text_emotion import detect_text_emotion, get_text_runtime_status
     from plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from utils import probs_to_dataframe
 
@@ -79,14 +79,15 @@ def analyze(user_text: str, alpha: float, face_image=None) -> dict[str, object]:
     """Run the full emotion pipeline for the demo."""
 
     text_probs = detect_text_emotion(user_text)
-    text_backend_status = get_text_emotion_backend_status()
+    text_runtime_status = get_text_runtime_status()
     face_probs = detect_face_emotion_from_image(face_image)
     face_warning = get_face_analysis_warning()
     fused_probs, fused_emotion = fuse_emotions(text_probs, face_probs, alpha)
     response = generate_response(user_text, fused_emotion)
     return {
         "text_probs": text_probs,
-        "text_backend_status": text_backend_status,
+        "text_runtime_status": text_runtime_status,
+        "text_backend_status": text_runtime_status,
         "face_probs": face_probs,
         "face_warning": face_warning,
         "fused_probs": fused_probs,
@@ -105,6 +106,30 @@ def _emotion_callout(st, emotion: str, label: str) -> None:
         st.info(message)
     else:
         st.warning(message)
+
+
+def _render_text_runtime_status(st, runtime_status: dict[str, object]) -> None:
+    """Render a compact text-runtime status block for the analysis section."""
+
+    runtime_mode = str(runtime_status.get("runtime_mode", "fallback_rule_based"))
+    model_name = runtime_status.get("model_name") or "Unavailable"
+    fallback_used = bool(runtime_status.get("fallback_used", False))
+
+    st.markdown("#### Text Runtime Status")
+    status_cols = st.columns(2)
+    status_cols[0].metric("Runtime mode", runtime_mode.replace("_", " ").title())
+    status_cols[1].metric("Model", str(model_name))
+
+    if fallback_used:
+        st.warning(
+            "The transformer runtime was not available for this run, so the "
+            "emergency rule-based fallback produced the text emotion distribution."
+        )
+    else:
+        st.success(
+            "The transformer runtime is active and provided the text emotion "
+            "distribution for this run."
+        )
 
 
 def _probability_table(probs: dict[str, float]) -> object:
@@ -126,9 +151,9 @@ def main() -> None:
 
     st.title("HCI Bimodal Affective Alignment")
     st.write(
-        "A multimodal HCI prototype that combines transformer-based text emotion recognition "
-        "with a rule-based fallback, image-based facial emotion analysis, weighted fusion, "
-        "and empathetic response generation."
+        "A multimodal HCI prototype that uses transformer-first text emotion recognition "
+        "with an emergency-only rule-based fallback, image-based facial emotion analysis, "
+        "weighted fusion, and empathetic response generation."
     )
 
     with st.sidebar:
@@ -139,7 +164,7 @@ def main() -> None:
         )
         st.write("Current status: Final evaluation package ready")
         st.caption(
-            "Transformer-based text emotion analysis is used when available; otherwise the rule-based fallback is used."
+            "Transformer-based text emotion analysis is the primary runtime; the rule-based fallback is reserved for failure recovery."
         )
         st.caption("Image-based facial analysis is enabled when an image is uploaded.")
 
@@ -183,11 +208,7 @@ def main() -> None:
 
         st.markdown("### A) Text Emotion")
         st.dataframe(_probability_table(results["text_probs"]), width="stretch")
-        text_backend_status = results["text_backend_status"]
-        if text_backend_status["mode"] == "transformer":
-            st.info(text_backend_status["message"])
-        else:
-            st.warning(text_backend_status["message"])
+        _render_text_runtime_status(st, results["text_runtime_status"])
         _emotion_callout(st, text_top, "Text emotion")
 
         st.markdown("### B) Face Emotion")
