@@ -35,7 +35,10 @@ try:
         save_human_eval_template,
     )
     from app.fusion import get_top_n_emotions, fuse_emotions
-    from app.response_generator import generate_response
+    from app.response_generator import (
+        generate_response,
+        get_response_runtime_status,
+    )
     from app.text_emotion import (
         detect_text_emotion,
         get_text_runtime_status,
@@ -72,7 +75,7 @@ except ImportError:  # pragma: no cover - supports running from app/ directly
         save_human_eval_template,
     )
     from fusion import get_top_n_emotions, fuse_emotions
-    from response_generator import generate_response
+    from response_generator import generate_response, get_response_runtime_status
     from text_emotion import detect_text_emotion, get_text_runtime_status
     from plot_results import plot_helpfulness_summary, plot_human_eval_summary
     from utils import probs_to_dataframe
@@ -90,6 +93,7 @@ def analyze(user_text: str, alpha: float, face_image=None) -> dict[str, object]:
     face_runtime_status = get_face_runtime_status()
     fused_probs, fused_emotion = fuse_emotions(text_probs, face_probs, alpha)
     response = generate_response(user_text, fused_emotion)
+    response_runtime_status = get_response_runtime_status()
     return {
         "text_probs": text_probs,
         "text_runtime_status": text_runtime_status,
@@ -101,6 +105,8 @@ def analyze(user_text: str, alpha: float, face_image=None) -> dict[str, object]:
         "fused_probs": fused_probs,
         "fused_emotion": fused_emotion,
         "response": response,
+        "response_runtime_status": response_runtime_status,
+        "response_backend_status": response_runtime_status,
     }
 
 
@@ -195,6 +201,39 @@ def _render_face_runtime_status(
         st.caption(f"Analysis issue: {inference_error}")
 
 
+def _render_response_runtime_status(st, runtime_status: dict[str, object]) -> None:
+    """Render a compact response-runtime status block for the analysis section."""
+
+    runtime_mode = str(runtime_status.get("runtime_mode", "fallback_template"))
+    model_name = runtime_status.get("model_name") or "Unavailable"
+    fallback_used = bool(runtime_status.get("fallback_used", False))
+    response_runtime_active = bool(runtime_status.get("response_runtime_active", False))
+    message = str(runtime_status.get("message", "")).strip()
+    load_error = runtime_status.get("load_error")
+    inference_error = runtime_status.get("inference_error")
+
+    st.markdown("#### Response Runtime Status")
+    status_cols = st.columns(2)
+    status_cols[0].metric("Runtime mode", runtime_mode.replace("_", " ").title())
+    status_cols[1].metric("Model", str(model_name))
+
+    if response_runtime_active and not fallback_used:
+        st.success("FLAN-T5 is active and generated the empathetic response for this run.")
+    elif fallback_used:
+        st.warning(
+            "The response generator used the safe fallback path for this run."
+        )
+    else:
+        st.info("The response runtime is not active yet.")
+
+    if message:
+        st.caption(message)
+    if load_error:
+        st.caption(f"Load issue: {load_error}")
+    if inference_error:
+        st.caption(f"Generation issue: {inference_error}")
+
+
 def _probability_table(probs: dict[str, float]) -> object:
     """Build a display-ready probability table."""
 
@@ -216,7 +255,7 @@ def main() -> None:
     st.write(
         "A multimodal HCI prototype that uses transformer-first text emotion recognition "
         "with an emergency-only rule-based fallback, image-based facial emotion analysis, "
-        "weighted fusion, and empathetic response generation."
+        "weighted fusion, and FLAN-T5-first empathetic response generation with a safe fallback."
     )
 
     with st.sidebar:
@@ -230,6 +269,9 @@ def main() -> None:
             "Transformer-based text emotion analysis is the primary runtime; the rule-based fallback is reserved for failure recovery."
         )
         st.caption("Image-based facial analysis is enabled when an image is uploaded.")
+        st.caption(
+            "FLAN-T5 response synthesis is the primary runtime; the template fallback is reserved for generation failure."
+        )
 
     uploaded_image = st.file_uploader(
         "Upload a facial image",
@@ -304,6 +346,7 @@ def main() -> None:
 
         st.markdown("### E) Empathetic Response")
         st.info(results["response"])
+        _render_response_runtime_status(st, results["response_runtime_status"])
 
     st.divider()
     st.subheader("Evaluation Tools")

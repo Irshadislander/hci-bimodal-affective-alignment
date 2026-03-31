@@ -16,7 +16,7 @@ The system is organized into small modules with clear responsibilities:
 - `app/text_emotion.py` for transformer-first text emotion runtime
 - `app/face_emotion.py` for image-based facial emotion analysis, with DeepFace as the primary runtime and a safe fallback only when face loading or detection fails
 - `app/fusion.py` for weighted late fusion
-- `app/response_generator.py` for empathetic response generation
+- `app/response_generator.py` for FLAN-T5-first empathetic response generation with a safe fallback
 - `app/evaluation.py`, `app/experiment_runner.py`, `app/case_studies.py`, `app/human_eval.py`, and `app/final_evaluation_pack.py` for evaluation assets
 - `app/report_assets.py`, `app/plot_results.py`, and `app/final_report_builder.py` for report and presentation outputs
 - `app/main.py` for the Streamlit interface
@@ -25,7 +25,7 @@ The system is organized into small modules with clear responsibilities:
 - Transformer-first text emotion analysis with emergency-only rule-based fallback
 - Image-based facial emotion analysis with DeepFace as the primary runtime and safe fallback only for failure recovery
 - Weighted fusion across the seven emotion classes
-- Short empathetic response generation
+- FLAN-T5-first empathetic response generation with fallback only for load or generation failure
 - Ablation study support
 - Alpha sensitivity analysis
 - Case-study generation

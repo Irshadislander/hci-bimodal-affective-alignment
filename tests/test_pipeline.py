@@ -51,7 +51,14 @@ from app.plot_results import (
     plot_human_eval_summary,
 )
 from app.report_assets import summarize_results_for_report
-from app.response_generator import generate_response
+import app.response_generator as response_generator_module
+from app.response_generator import (
+    build_response_prompt,
+    generate_response,
+    generate_response_fallback,
+    get_response_runtime_status,
+    initialize_response_runtime,
+)
 import app.text_emotion as text_emotion_module
 from app.text_emotion import (
     EMOTIONS,
@@ -133,6 +140,27 @@ def _reset_face_runtime(monkeypatch) -> None:
             "message": (
                 "Face runtime has not been initialized yet. "
                 "The image-based analyzer will activate on first use."
+            ),
+        },
+    )
+
+
+def _reset_response_runtime(monkeypatch) -> None:
+    """Reset the module-level response runtime cache for isolated tests."""
+
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_GENERATOR", None)
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_RUNTIME_INITIALIZED", False)
+    monkeypatch.setattr(
+        response_generator_module,
+        "_RESPONSE_RUNTIME_STATUS",
+        {
+            "runtime_mode": "fallback_template",
+            "model_name": None,
+            "fallback_used": True,
+            "response_runtime_active": False,
+            "message": (
+                "Response runtime has not been initialized yet. "
+                "FLAN-T5 will be attempted on first use."
             ),
         },
     )
@@ -1164,10 +1192,128 @@ def test_alpha_sensitivity_returns_dataframe(monkeypatch, tmp_path) -> None:
     assert (tmp_path / "alpha_sensitivity.csv").exists()
 
 
-def test_response_generator_returns_string() -> None:
-    """Response generator should return a short non-empty string."""
+def test_response_runtime_status_returns_dict(monkeypatch) -> None:
+    """Response runtime status should always return a dictionary."""
 
-    response = generate_response("I am okay, but a little tired.", "neutral")
+    _reset_response_runtime(monkeypatch)
+    status = get_response_runtime_status()
+
+    assert isinstance(status, dict)
+    assert {"runtime_mode", "model_name", "fallback_used", "response_runtime_active", "message"} <= set(status)
+    assert status["runtime_mode"] == "fallback_template"
+
+
+def test_build_response_prompt_includes_inputs() -> None:
+    """The response prompt should include both the utterance and fused emotion."""
+
+    prompt = build_response_prompt("I feel stuck.", "fear")
+
+    assert "I feel stuck." in prompt
+    assert "fear" in prompt
+    assert "1 or 2 short sentences" in prompt
+
+
+def test_initialize_response_runtime_returns_status_dict(monkeypatch) -> None:
+    """Explicit response runtime initialization should report an active model."""
+
+    _reset_response_runtime(monkeypatch)
+
+    class FakeGenerator:
+        def __call__(self, prompt, **kwargs):
+            return [{"generated_text": "I'm sorry this feels hard. We can take one small step at a time."}]
+
+    fake_status = {
+        "runtime_mode": "flan_t5",
+        "model_name": "google/flan-t5-base",
+        "fallback_used": False,
+        "response_runtime_active": True,
+        "message": "FLAN-T5 response runtime loaded successfully and is ready for empathetic generation.",
+    }
+    monkeypatch.setattr(
+        response_generator_module,
+        "_attempt_response_runtime_initialization",
+        lambda: (FakeGenerator(), fake_status),
+    )
+
+    status = initialize_response_runtime()
+
+    assert isinstance(status, dict)
+    assert status == get_response_runtime_status()
+    assert status["runtime_mode"] == "flan_t5"
+    assert status["response_runtime_active"] is True
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "google/flan-t5-base"
+
+
+def test_response_fallback_returns_string() -> None:
+    """Template fallback generation should return a short non-empty string."""
+
+    response = generate_response_fallback("I am okay, but a little tired.", "neutral")
 
     assert isinstance(response, str)
     assert response
+
+
+def test_generate_response_uses_primary_runtime(monkeypatch) -> None:
+    """Generation should use the FLAN-T5 runtime when it is available."""
+
+    _reset_response_runtime(monkeypatch)
+
+    class FakeGenerator:
+        def __call__(self, prompt, **kwargs):
+            return [{"generated_text": "I'm sorry this feels overwhelming. We can break it into one small step."}]
+
+    fake_status = {
+        "runtime_mode": "flan_t5",
+        "model_name": "google/flan-t5-small",
+        "fallback_used": False,
+        "response_runtime_active": True,
+        "message": "google/flan-t5-base was unavailable, so google/flan-t5-small was loaded successfully.",
+    }
+    monkeypatch.setattr(
+        response_generator_module,
+        "_attempt_response_runtime_initialization",
+        lambda: (FakeGenerator(), fake_status),
+    )
+
+    response = generate_response("I am worried about tomorrow.", "fear")
+    status = get_response_runtime_status()
+
+    assert isinstance(response, str)
+    assert response
+    assert status["runtime_mode"] == "flan_t5"
+    assert status["response_runtime_active"] is True
+    assert status["fallback_used"] is False
+    assert status["model_name"] == "google/flan-t5-small"
+
+
+def test_generate_response_falls_back_on_generation_error(monkeypatch) -> None:
+    """Generation failures should safely fall back to the template generator."""
+
+    _reset_response_runtime(monkeypatch)
+
+    class FakeGenerator:
+        def __call__(self, prompt, **kwargs):
+            raise RuntimeError("boom")
+
+    fake_status = {
+        "runtime_mode": "flan_t5",
+        "model_name": "google/flan-t5-base",
+        "fallback_used": False,
+        "response_runtime_active": True,
+        "message": "FLAN-T5 response runtime loaded successfully and is ready for empathetic generation.",
+    }
+    monkeypatch.setattr(
+        response_generator_module,
+        "_attempt_response_runtime_initialization",
+        lambda: (FakeGenerator(), fake_status),
+    )
+
+    response = generate_response("I am worried about tomorrow.", "fear")
+    status = get_response_runtime_status()
+
+    assert isinstance(response, str)
+    assert response
+    assert status["fallback_used"] is True
+    assert status["response_runtime_active"] is True
+    assert "inference_error" in status
