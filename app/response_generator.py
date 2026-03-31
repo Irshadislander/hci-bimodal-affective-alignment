@@ -9,8 +9,14 @@ from typing import Any
 
 _PRIMARY_RESPONSE_MODEL = "google/flan-t5-base"
 _SECONDARY_RESPONSE_MODEL = "google/flan-t5-small"
-_RESPONSE_MAX_NEW_TOKENS = 48
+_RESPONSE_MAX_NEW_TOKENS = 24
+_RESPONSE_NUM_BEAMS = 1
+_RESPONSE_MAX_SENTENCES = 1
+_RESPONSE_MAX_CHARS = 180
 
+_RESPONSE_TOKENIZER: Any | None = None
+_RESPONSE_MODEL: Any | None = None
+_RESPONSE_DEVICE: str = "cpu"
 _RESPONSE_GENERATOR: Any | None = None
 _RESPONSE_RUNTIME_INITIALIZED = False
 
@@ -91,16 +97,9 @@ def get_response_runtime_status() -> dict[str, Any]:
 def build_response_prompt(user_text: str, fused_emotion: str) -> str:
     """Build a short prompt for FLAN-T5 empathetic response synthesis."""
 
-    user_text = (user_text or "").strip()
+    user_text = " ".join((user_text or "").split()).rstrip(".!?") or "No user text provided"
     emotion = (fused_emotion or "neutral").strip().lower() or "neutral"
-    return (
-        "You are an empathetic assistant for an HCI research demo.\n"
-        f"User utterance: {user_text}\n"
-        f"Detected fused emotion: {emotion}\n\n"
-        "Write 1 or 2 short sentences that are warm, supportive, "
-        "context-aware, non-judgmental, and socially aware. "
-        "Do not mention model labels, do not give a lecture, and keep the tone natural."
-    )
+    return f"Emotion: {emotion}. User: {user_text}. Respond with one short empathetic sentence."
 
 
 def _stable_index(seed: str, size: int) -> int:
@@ -168,7 +167,7 @@ def generate_response_fallback(user_text: str, fused_emotion: str) -> str:
 
 
 def _extract_generated_text(result: Any) -> str:
-    """Extract generated text from a text2text-generation pipeline response."""
+    """Extract generated text from a seq2seq generation response payload."""
 
     payload = result
     if isinstance(payload, list):
@@ -185,10 +184,16 @@ def _extract_generated_text(result: Any) -> str:
     return ""
 
 
-def _clean_generated_response(text: str, *, max_sentences: int = 2, max_chars: int = 220) -> str:
-    """Normalize generated text into a concise classroom-demo response."""
+def _normalize_whitespace(text: str) -> str:
+    """Collapse whitespace and trim the surrounding edges."""
 
-    cleaned = re.sub(r"\s+", " ", (text or "")).strip()
+    return re.sub(r"\s+", " ", (text or "")).strip()
+
+
+def _clean_generated_response(text: str, *, max_sentences: int = 2, max_chars: int = 220) -> str:
+    """Normalize generated text into a concise supportive response."""
+
+    cleaned = _normalize_whitespace(text)
     if not cleaned:
         return ""
 
@@ -211,16 +216,194 @@ def _clean_generated_response(text: str, *, max_sentences: int = 2, max_chars: i
     return cleaned
 
 
-def _load_text2text_pipeline(model_name: str) -> Any:
-    """Load a Hugging Face text2text generation pipeline."""
+_GENERATION_PREFIXES = ("response:", "assistant:", "reply:", "answer:")
+_PROMPT_ECHO_LEADS = {"response", "assistant", "reply", "answer", "sure", "of course"}
 
-    from transformers import pipeline
 
-    return pipeline(
-        "text2text-generation",
-        model=model_name,
-        tokenizer=model_name,
+def _strip_generation_prefix(text: str) -> str:
+    """Remove common assistant-style lead-ins from model output."""
+
+    cleaned = text
+    for prefix in _GENERATION_PREFIXES:
+        if cleaned.lower().startswith(prefix):
+            return cleaned[len(prefix) :].strip()
+    return cleaned
+
+
+def _strip_prompt_echo(text: str, prompt: str) -> str:
+    """Remove echoed prompt text when the model copies the instruction back."""
+
+    cleaned = _normalize_whitespace(text)
+    prompt_clean = _normalize_whitespace(prompt)
+    if not cleaned or not prompt_clean:
+        return cleaned
+
+    prompt_core = prompt_clean
+    prompt_instruction = ""
+    if "Respond with " in prompt_clean:
+        prompt_core, prompt_instruction_tail = prompt_clean.split("Respond with ", 1)
+        prompt_core = prompt_core.rstrip()
+        prompt_instruction = f"Respond with {prompt_instruction_tail}".strip()
+
+    lowered = cleaned.lower()
+    prompt_lower = prompt_clean.lower()
+    prompt_core_lower = prompt_core.lower()
+    prompt_instruction_lower = prompt_instruction.lower()
+    prompt_index = lowered.find(prompt_lower)
+    if prompt_index == 0:
+        remainder = cleaned[len(prompt_clean) :]
+    else:
+        core_index = lowered.find(prompt_core_lower)
+        if core_index == -1:
+            return cleaned
+        if core_index != 0:
+            lead_in = lowered[:core_index].strip(" ,:;-")
+            if lead_in not in _PROMPT_ECHO_LEADS:
+                return cleaned
+        remainder = cleaned[core_index + len(prompt_core) :]
+        if prompt_instruction and remainder.lower().startswith(prompt_instruction_lower):
+            remainder = remainder[len(prompt_instruction) :]
+
+    return re.sub(r"^[\s,;:.\-]+", "", remainder).strip()
+
+
+def _looks_unusable_generated_response(text: str) -> bool:
+    """Return True when the model output is clearly not a usable reply."""
+
+    cleaned = _normalize_whitespace(text)
+    if not cleaned:
+        return True
+    if not re.search(r"[A-Za-z]", cleaned):
+        return True
+
+    lowered = cleaned.lower()
+    if lowered.startswith(("emotion:", "user:", "respond with", "write ", "assistant:", "reply:", "answer:")):
+        return True
+    if len(cleaned) < 3:
+        return True
+    return False
+
+
+def postprocess_generated_response(text: str, prompt: str) -> str:
+    """Clean FLAN-T5 output and reject prompt echoes or unusable generations."""
+
+    cleaned = _normalize_whitespace(text)
+    if not cleaned:
+        return ""
+
+    cleaned = _strip_generation_prefix(cleaned)
+    cleaned = _strip_prompt_echo(cleaned, prompt)
+    cleaned = _strip_generation_prefix(cleaned)
+
+    if _looks_unusable_generated_response(cleaned):
+        return ""
+
+    cleaned = _clean_generated_response(
+        cleaned,
+        max_sentences=_RESPONSE_MAX_SENTENCES,
+        max_chars=_RESPONSE_MAX_CHARS,
     )
+    cleaned = _normalize_whitespace(cleaned)
+
+    if _looks_unusable_generated_response(cleaned):
+        return ""
+
+    return cleaned
+
+
+def _load_text2text_pipeline(model_name: str) -> Any:
+    """Backward-compatible shim for older imports.
+
+    The runtime now uses direct tokenizer/model loading. This helper returns a
+    callable runtime wrapper around those components.
+    """
+
+    tokenizer, model, device = _load_response_components(model_name)
+    return _FlanT5Runtime(tokenizer=tokenizer, model=model, device=device)
+
+
+def _load_response_components(model_name: str) -> tuple[Any, Any, str]:
+    """Load the tokenizer and seq2seq model directly from Hugging Face."""
+
+    import torch
+    from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if hasattr(model, "to"):
+        model = model.to(device)
+    if hasattr(model, "eval"):
+        model.eval()
+    return tokenizer, model, device
+
+
+class _FlanT5Runtime:
+    """Small callable wrapper that mirrors a generation pipeline."""
+
+    def __init__(self, tokenizer: Any, model: Any, device: str) -> None:
+        self.tokenizer = tokenizer
+        self.model = model
+        self.device = device
+
+    def __call__(
+        self,
+        prompt: str,
+        *,
+        max_new_tokens: int = _RESPONSE_MAX_NEW_TOKENS,
+        do_sample: bool = False,
+        num_beams: int = _RESPONSE_NUM_BEAMS,
+        temperature: float = 0.0,
+        truncation: bool = True,
+    ) -> list[dict[str, str]]:
+        """Generate text and return a pipeline-like payload."""
+
+        import torch
+
+        encoded = self.tokenizer(
+            prompt,
+            return_tensors="pt",
+            truncation=truncation,
+        )
+        if hasattr(encoded, "to"):
+            encoded = encoded.to(self.device)
+        elif isinstance(encoded, dict):
+            encoded = {
+                key: value.to(self.device) if hasattr(value, "to") else value
+                for key, value in encoded.items()
+            }
+
+        generation_kwargs = {
+            "max_new_tokens": max_new_tokens,
+            "do_sample": do_sample,
+            "num_beams": num_beams,
+        }
+        if do_sample:
+            generation_kwargs["temperature"] = temperature
+
+        pad_token_id = getattr(self.tokenizer, "pad_token_id", None)
+        if pad_token_id is None:
+            pad_token_id = getattr(self.tokenizer, "eos_token_id", None)
+        if pad_token_id is not None:
+            generation_kwargs["pad_token_id"] = pad_token_id
+
+        with torch.no_grad():
+            output_ids = self.model.generate(**encoded, **generation_kwargs)
+
+        if hasattr(output_ids, "detach"):
+            output_ids = output_ids.detach()
+        if hasattr(output_ids, "cpu"):
+            output_ids = output_ids.cpu()
+
+        if hasattr(self.tokenizer, "decode") and len(output_ids) > 0:
+            generated_text = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        elif hasattr(self.tokenizer, "batch_decode"):
+            batch_text = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+            generated_text = batch_text[0] if batch_text else ""
+        else:
+            generated_text = ""
+
+        return [{"generated_text": generated_text}]
 
 
 def _attempt_response_runtime_initialization() -> tuple[Any | None, dict[str, Any]]:
@@ -229,7 +412,12 @@ def _attempt_response_runtime_initialization() -> tuple[Any | None, dict[str, An
     load_errors: list[str] = []
     for model_name in (_PRIMARY_RESPONSE_MODEL, _SECONDARY_RESPONSE_MODEL):
         try:
-            generator = _load_text2text_pipeline(model_name)
+            tokenizer, model, device = _load_response_components(model_name)
+            generator = _FlanT5Runtime(tokenizer=tokenizer, model=model, device=device)
+            global _RESPONSE_TOKENIZER, _RESPONSE_MODEL, _RESPONSE_DEVICE
+            _RESPONSE_TOKENIZER = tokenizer
+            _RESPONSE_MODEL = model
+            _RESPONSE_DEVICE = device
             if model_name == _PRIMARY_RESPONSE_MODEL:
                 message = (
                     "FLAN-T5 response runtime loaded successfully and is ready "
@@ -252,6 +440,8 @@ def _attempt_response_runtime_initialization() -> tuple[Any | None, dict[str, An
             load_errors.append(f"{model_name}: {_short_error_message(exc)}")
 
     load_error = "; ".join(load_errors) if load_errors else "FLAN-T5 could not be loaded."
+    if len(load_error) > 220:
+        load_error = f"{load_error[:217].rstrip()}..."
     status = _make_response_runtime_status(
         runtime_mode="fallback_template",
         model_name=None,
@@ -261,7 +451,7 @@ def _attempt_response_runtime_initialization() -> tuple[Any | None, dict[str, An
             "FLAN-T5 could not be loaded. Using the safe template fallback "
             "response generator."
         ),
-        load_error=_short_error_message(RuntimeError(load_error)),
+        load_error=load_error,
     )
     return None, status
 
@@ -290,12 +480,12 @@ def _generate_with_runtime(prompt: str) -> str:
         prompt,
         max_new_tokens=_RESPONSE_MAX_NEW_TOKENS,
         do_sample=False,
-        num_beams=2,
+        num_beams=_RESPONSE_NUM_BEAMS,
         temperature=0.0,
         truncation=True,
     )
     generated_text = _extract_generated_text(output)
-    return _clean_generated_response(generated_text)
+    return postprocess_generated_response(generated_text, prompt)
 
 
 def generate_response(user_text: str, fused_emotion: str) -> str:

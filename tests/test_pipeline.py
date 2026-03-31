@@ -58,6 +58,7 @@ from app.response_generator import (
     generate_response_fallback,
     get_response_runtime_status,
     initialize_response_runtime,
+    postprocess_generated_response,
 )
 import app.text_emotion as text_emotion_module
 from app.text_emotion import (
@@ -148,6 +149,9 @@ def _reset_face_runtime(monkeypatch) -> None:
 def _reset_response_runtime(monkeypatch) -> None:
     """Reset the module-level response runtime cache for isolated tests."""
 
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_TOKENIZER", None)
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_MODEL", None)
+    monkeypatch.setattr(response_generator_module, "_RESPONSE_DEVICE", "cpu")
     monkeypatch.setattr(response_generator_module, "_RESPONSE_GENERATOR", None)
     monkeypatch.setattr(response_generator_module, "_RESPONSE_RUNTIME_INITIALIZED", False)
     monkeypatch.setattr(
@@ -1203,14 +1207,25 @@ def test_response_runtime_status_returns_dict(monkeypatch) -> None:
     assert status["runtime_mode"] == "fallback_template"
 
 
-def test_build_response_prompt_includes_inputs() -> None:
-    """The response prompt should include both the utterance and fused emotion."""
+def test_build_response_prompt_uses_task_style_format() -> None:
+    """The response prompt should stay short and task-oriented."""
 
     prompt = build_response_prompt("I feel stuck.", "fear")
 
-    assert "I feel stuck." in prompt
-    assert "fear" in prompt
-    assert "1 or 2 short sentences" in prompt
+    assert prompt == (
+        "Emotion: fear. User: I feel stuck. Respond with one short empathetic sentence."
+    )
+
+
+def test_postprocess_generated_response_removes_prompt_echo() -> None:
+    """Echoed prompt text should be removed from the generated output."""
+
+    prompt = build_response_prompt("I feel overwhelmed.", "sad")
+    echoed = f"Response: {prompt} I'm sorry you're dealing with this."
+
+    cleaned = postprocess_generated_response(echoed, prompt)
+
+    assert cleaned == "I'm sorry you're dealing with this."
 
 
 def test_initialize_response_runtime_returns_status_dict(monkeypatch) -> None:
@@ -1218,21 +1233,29 @@ def test_initialize_response_runtime_returns_status_dict(monkeypatch) -> None:
 
     _reset_response_runtime(monkeypatch)
 
-    class FakeGenerator:
-        def __call__(self, prompt, **kwargs):
-            return [{"generated_text": "I'm sorry this feels hard. We can take one small step at a time."}]
+    class FakeTokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
 
-    fake_status = {
-        "runtime_mode": "flan_t5",
-        "model_name": "google/flan-t5-base",
-        "fallback_used": False,
-        "response_runtime_active": True,
-        "message": "FLAN-T5 response runtime loaded successfully and is ready for empathetic generation.",
-    }
+        def __call__(self, prompt, return_tensors="pt", truncation=True):
+            return {"input_ids": [1, 2, 3], "attention_mask": [1, 1, 1]}
+
+        def decode(self, token_ids, skip_special_tokens=True):
+            return "I'm sorry this feels hard. We can take one small step at a time."
+
+    class FakeModel:
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+        def generate(self, **kwargs):
+            return [[1, 2, 3, 4]]
     monkeypatch.setattr(
         response_generator_module,
-        "_attempt_response_runtime_initialization",
-        lambda: (FakeGenerator(), fake_status),
+        "_load_response_components",
+        lambda model_name: (FakeTokenizer(), FakeModel(), "cpu"),
     )
 
     status = initialize_response_runtime()
@@ -1255,32 +1278,47 @@ def test_response_fallback_returns_string() -> None:
 
 
 def test_generate_response_uses_primary_runtime(monkeypatch) -> None:
-    """Generation should use the FLAN-T5 runtime when it is available."""
+    """Generation should use the FLAN-T5 backup model when the base model is unavailable."""
 
     _reset_response_runtime(monkeypatch)
 
-    class FakeGenerator:
-        def __call__(self, prompt, **kwargs):
-            return [{"generated_text": "I'm sorry this feels overwhelming. We can break it into one small step."}]
+    class FakeTokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
 
-    fake_status = {
-        "runtime_mode": "flan_t5",
-        "model_name": "google/flan-t5-small",
-        "fallback_used": False,
-        "response_runtime_active": True,
-        "message": "google/flan-t5-base was unavailable, so google/flan-t5-small was loaded successfully.",
-    }
+        def __call__(self, prompt, return_tensors="pt", truncation=True):
+            return {"input_ids": [1, 2, 3], "attention_mask": [1, 1, 1]}
+
+        def decode(self, token_ids, skip_special_tokens=True):
+            prompt = build_response_prompt("I am worried about tomorrow.", "fear")
+            return f"{prompt} I'm sorry you're dealing with that."
+
+    class FakeModel:
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+        def generate(self, **kwargs):
+            return [[1, 2, 3, 4]]
+
+    def fake_load(model_name):
+        if model_name == "google/flan-t5-base":
+            raise RuntimeError("base unavailable")
+        return FakeTokenizer(), FakeModel(), "cpu"
+
     monkeypatch.setattr(
         response_generator_module,
-        "_attempt_response_runtime_initialization",
-        lambda: (FakeGenerator(), fake_status),
+        "_load_response_components",
+        fake_load,
     )
 
     response = generate_response("I am worried about tomorrow.", "fear")
     status = get_response_runtime_status()
 
     assert isinstance(response, str)
-    assert response
+    assert response == "I'm sorry you're dealing with that."
     assert status["runtime_mode"] == "flan_t5"
     assert status["response_runtime_active"] is True
     assert status["fallback_used"] is False
@@ -1292,8 +1330,24 @@ def test_generate_response_falls_back_on_generation_error(monkeypatch) -> None:
 
     _reset_response_runtime(monkeypatch)
 
-    class FakeGenerator:
-        def __call__(self, prompt, **kwargs):
+    class FakeTokenizer:
+        pad_token_id = 0
+        eos_token_id = 1
+
+        def __call__(self, prompt, return_tensors="pt", truncation=True):
+            return {"input_ids": [1, 2, 3], "attention_mask": [1, 1, 1]}
+
+        def decode(self, token_ids, skip_special_tokens=True):
+            return "I am sorry this is hard."
+
+    class FakeModel:
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+        def generate(self, **kwargs):
             raise RuntimeError("boom")
 
     fake_status = {
@@ -1305,8 +1359,8 @@ def test_generate_response_falls_back_on_generation_error(monkeypatch) -> None:
     }
     monkeypatch.setattr(
         response_generator_module,
-        "_attempt_response_runtime_initialization",
-        lambda: (FakeGenerator(), fake_status),
+        "_load_response_components",
+        lambda model_name: (FakeTokenizer(), FakeModel(), "cpu"),
     )
 
     response = generate_response("I am worried about tomorrow.", "fear")
