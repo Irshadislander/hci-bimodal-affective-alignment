@@ -1,1 +1,4 @@
 mode,completed_rows,empathy_rating_mean,social_presence_rating_mean,trust_rating_mean,helpfulness_rating_mean
+text_only,10,3.4,3.1,4.0,3.5
+face_only,10,2.7,2.3,3.0,2.7
+fused,10,4.5,4.2,4.6,4.6

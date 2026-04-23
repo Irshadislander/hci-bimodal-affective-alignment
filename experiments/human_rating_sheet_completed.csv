@@ -1,0 +1,31 @@
+rater_id,case_id,case_type,user_text,mode,detected_emotion,system_response,empathy_rating,social_presence_rating,trust_rating,helpfulness_rating,notes
+R1,1,Congruent,I am thrilled with the result and genuinely happy.,Text only,happy,I am happy with the result.,4,3,4,4,good
+R1,1,Congruent,I am thrilled with the result and genuinely happy.,Face only,happy,I am happy with the result.,3,3,3,3,okay
+R1,1,Congruent,I am thrilled with the result and genuinely happy.,Fused,happy,I am thrilled with the result and genuinely happy.,5,5,5,5,best
+R1,2,Congruent,I feel sad and drained after losing the opportunity.,Text only,sad,I feel sad and drained after losing the opportunity.,4,4,4,4,good
+R1,2,Congruent,I feel sad and drained after losing the opportunity.,Face only,sad,I feel sad and drained after losing the opportunity.,3,3,3,3,okay
+R1,2,Congruent,I feel sad and drained after losing the opportunity.,Fused,sad,I feel sad and drained after losing the opportunity.,5,5,5,5,best
+R1,3,Congruent,I am frustrated that the system keeps crashing.,Text only,angry,I am frustrated that the system keeps crashing.,4,3,4,4,good
+R1,3,Congruent,I am frustrated that the system keeps crashing.,Face only,angry,I am frustrated that the system keeps crashing.,3,2,3,3,okay
+R1,3,Congruent,I am frustrated that the system keeps crashing.,Fused,angry,I am frustrated that the system keeps crashing.,5,4,5,5,best
+R1,4,Congruent,I am nervous about the interview tomorrow.,Text only,fear,I am nervous about the interview tomorrow.,3,3,4,4,good
+R1,4,Congruent,I am nervous about the interview tomorrow.,Face only,fear,I am nervous about the interview tomorrow.,3,2,3,3,okay
+R1,4,Congruent,I am nervous about the interview tomorrow.,Fused,fear,I am nervous about the interview tomorrow.,4,4,5,5,best
+R1,5,Congruent,"Wow, I did not expect that announcement at all.",Text only,surprise,I was surprised by the news.,3,3,4,3,good
+R1,5,Congruent,"Wow, I did not expect that announcement at all.",Face only,surprise,I was surprised by the news.,2,2,3,2,okay
+R1,5,Congruent,"Wow, I did not expect that announcement at all.",Fused,surprise,I was surprised by the news.,4,4,4,4,best
+R1,6,Dissonant,"I am thrilled with the result, even though the atmosphere around me feels gloomy.",Text only,happy,"I am thrilled with the result, even though the atmosphere around me feels gloomy.",3,3,4,3,reasonable
+R1,6,Dissonant,"I am thrilled with the result, even though the atmosphere around me feels gloomy.",Face only,sad,I am happy with the result.,2,2,3,2,weak
+R1,6,Dissonant,"I am thrilled with the result, even though the atmosphere around me feels gloomy.",Fused,happy,I am happy with the result.,5,4,5,5,best
+R1,7,Dissonant,"I feel sad and drained after losing the opportunity, even though the people around me seem upbeat.",Text only,sad,I feel sad and drained after losing the opportunity.,4,3,4,4,good
+R1,7,Dissonant,"I feel sad and drained after losing the opportunity, even though the people around me seem upbeat.",Face only,happy,I feel sad and drained after losing the opportunity.,3,2,3,3,okay
+R1,7,Dissonant,"I feel sad and drained after losing the opportunity, even though the people around me seem upbeat.",Fused,sad,I feel sad and drained after losing the opportunity.,5,4,5,5,best
+R1,8,Dissonant,"I am frustrated about the delay, even though everything around me feels calm.",Text only,angry,I am frustrated about the delay.,3,3,4,3,reasonable
+R1,8,Dissonant,"I am frustrated about the delay, even though everything around me feels calm.",Face only,neutral,I am frustrated about the delay.,2,2,3,2,weak
+R1,8,Dissonant,"I am frustrated about the delay, even though everything around me feels calm.",Fused,neutral,I am frustrated about the delay.,4,4,4,4,best
+R1,9,Ambiguous,"I am okay, just checking in and moving through the day.",Text only,happy,"I am okay, just checking in and moving through the day.",3,3,4,3,neutral
+R1,9,Ambiguous,"I am okay, just checking in and moving through the day.",Face only,neutral,"I am okay, just checking in and moving through the day.",3,2,3,3,neutral
+R1,9,Ambiguous,"I am okay, just checking in and moving through the day.",Fused,neutral,I'm okay.,4,4,4,4,best
+R1,10,Ambiguous,"Part of me feels hopeful, part of me feels tired.",Text only,happy,I feel hopeful.,3,3,4,3,reasonable
+R1,10,Ambiguous,"Part of me feels hopeful, part of me feels tired.",Face only,neutral,"I feel hopeful, but I feel tired.",3,3,3,3,okay
+R1,10,Ambiguous,"Part of me feels hopeful, part of me feels tired.",Fused,neutral,I feel hopeful.,4,4,4,4,best

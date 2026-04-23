@@ -9,11 +9,13 @@ The ablation study compares text-only, face-only, and fused behavior on the defa
 ## Alpha Sensitivity Placeholders
 The alpha-sensitivity sweep is intended to show how sensitive the system is to the balance between text and face probabilities. The final report should insert the plot generated from `experiments/alpha_sensitivity.csv`. Discussion should focus on which cases are stable across the alpha grid and which cases shift when the text or face signal is weighted more heavily.
 
-## Human Evaluation Placeholders
-Human evaluation is designed to compare empathy, social presence, trust, and helpfulness across the three modes. The report can insert averages from the completed human-rating sheet once ratings are collected. Until then, the draft can state that the template is ready and the summary table will be generated from `experiments/human_rating_sheet_completed.csv`.
+## Human Evaluation (Pilot)
+Preliminary human evaluation (pilot) with one completed rater (R1).
+
+This is an initial classroom evaluation with one completed rating sheet (30 rows total, 10 per mode). Early averages in `experiments/human_eval_summary.csv` are strongest for fused mode and lower for face-only mode, but this should be treated as a first-pass signal rather than a general conclusion until more raters are added.
 
 ## Case Study Highlights
 The case studies intentionally mix congruent, dissonant, and ambiguous examples so the report can show different kinds of multimodal alignment. The final write-up should highlight cases where text and face agree, cases where they conflict, and cases where the fused output resolves the tension in a reasonable way. A compact table or a few short examples should be enough to support the narrative.
 
 ## What Remains Before Final Submission
-The remaining work is mostly editorial and evaluative: collect human ratings, finalize the report tables and plots, polish the presentation slides, and proofread the final draft for consistency. If any completed ratings are missing, the team can still present the evaluation template and explain the intended study design clearly.
+The remaining work is mostly editorial and evaluative: add more human raters beyond R1, finalize the report tables and plots, polish the presentation slides, and proofread the final draft for consistency. The current human-evaluation results should be presented explicitly as preliminary pilot evidence.

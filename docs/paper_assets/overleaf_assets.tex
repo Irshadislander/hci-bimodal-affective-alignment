@@ -1,0 +1,85 @@
+% Overleaf/LaTeX assets for HCI Bimodal Affective Alignment (class project)
+% This content is designed for IEEEtran and can be copied into the main manuscript.
+
+\subsection{System Architecture}
+The implemented pipeline combines text emotion inference (\texttt{app/text\_emotion.py}) and face emotion inference (\texttt{app/face\_emotion.py}) into a weighted fusion layer (\texttt{app/fusion.py}). The fused emotion drives empathetic response generation in \texttt{app/response\_generator.py}. The architecture is intentionally deterministic and reproducible for classroom evaluation and reporting.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/system_architecture.png}
+    \caption{Bimodal system architecture with text and facial streams, weighted fusion, and response generation.}
+    \label{fig:system_architecture}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/runtime_workflow.png}
+    \caption{Operational runtime workflow from input collection to evaluation logging.}
+    \label{fig:runtime_workflow}
+\end{figure}
+
+\subsection{Fusion Strategy}
+The project uses a convex combination of modality-level probabilities:
+\begin{equation}
+P_{fusion}(e)=\alpha P_{text}(e)+(1-\alpha)P_{face}(e), \quad \hat{e}=\arg\max_e P_{fusion}(e)
+\label{eq:fusion_rule}
+\end{equation}
+where $\alpha\in[0,1]$ controls modality emphasis. In this classroom prototype, alpha sensitivity is evaluated via a sweep over $\{0.0,0.25,0.5,0.75,1.0\}$.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/fusion_equation.png}
+    \caption{Weighted fusion rule used in the implemented bimodal decision layer.}
+    \label{fig:fusion_equation}
+\end{figure}
+
+\subsection{Evaluation Setup}
+Evaluation combines automatic outputs and a human-rating workflow. Automatic artifacts include ablation and alpha-sensitivity plots generated from \texttt{experiments/*.csv}. Human evaluation uses a structured rating sheet and aggregation utility in \texttt{app/final\_evaluation\_pack.py}. Current human results are \textbf{preliminary}: pilot data from one completed rater (R1).
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/human_eval_workflow.png}
+    \caption{Human evaluation workflow from rating-sheet generation to aggregated summaries.}
+    \label{fig:human_eval_workflow}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/ablation_comparison_plot.png}
+    \caption{Ablation comparison using fused top-emotion counts.}
+    \label{fig:ablation_plot}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/alpha_sensitivity_plot.png}
+    \caption{Alpha sensitivity across the implemented fusion sweep.}
+    \label{fig:alpha_sensitivity_plot}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/human_eval_summary_plot.png}
+    \caption{Preliminary pilot human evaluation summary (one completed rater, R1).}
+    \label{fig:human_eval_summary_plot}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/helpfulness_plot.png}
+    \caption{Pilot helpfulness means by mode.}
+    \label{fig:helpfulness_plot}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/case_type_distribution_plot.png}
+    \caption{Distribution of congruent, dissonant, and ambiguous cases used in evaluation.}
+    \label{fig:case_type_distribution_plot}
+\end{figure}
+
+% Table inclusion options:
+% Option A: include all generated table environments.
+\input{tables/paper_tables.tex}
+
+% Option B: copy individual tables from docs/paper_assets/tables/*.md or *.csv into custom IEEE layouts.
