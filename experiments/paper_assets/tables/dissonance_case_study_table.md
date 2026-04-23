@@ -1,0 +1,7 @@
+# Dissonance Case-Study Table
+
+| User Text | Text Emotion | Face Emotion | Fused Emotion | Response | Case Type |
+| --- | --- | --- | --- | --- | --- |
+| I am thrilled with the result, even though the atmosphere around me feels gloomy. | happy | sad | happy | I am happy with the result. | Dissonant |
+| I feel sad and drained after losing the opportunity, even though the people around me seem upbeat. | sad | happy | sad | I feel sad and drained after losing the opportunity. | Dissonant |
+| I am frustrated about the delay, even though everything around me feels calm. | angry | neutral | neutral | I am frustrated about the delay. | Dissonant |

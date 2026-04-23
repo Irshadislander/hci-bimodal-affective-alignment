@@ -1,0 +1,6 @@
+Component,Implementation,Role,Robustness/Notes
+Text Emotion Module,app/text_emotion.py,Infers emotion probabilities from user text.,"Rule-based lexical scoring; stable for classroom demo, limited linguistic nuance."
+Face Emotion Module,app/face_emotion.py,Extracts facial emotion probabilities from image input.,Includes safe fallback profile when image/face signal is weak.
+Fusion Module,app/fusion.py,Combines modality probabilities with weighted alpha fusion.,Normalized combination reduces single-modality dominance.
+Response Generator,app/response_generator.py,Generates empathetic response conditioned on detected emotion.,Uses deterministic templates for reproducible output.
+Evaluation Module,app/final_evaluation_pack.py + app/plot_results.py,"Builds rating sheets, aggregates metrics, and outputs figures/tables.",Supports pilot human study and reproducible CSV/plot generation.

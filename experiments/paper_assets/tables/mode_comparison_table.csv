@@ -1,0 +1,4 @@
+Mode,Input,Strength,Limitation,Expected Use
+Text-only,User text,Captures explicit semantic and affective wording.,Cannot use facial context; may miss non-verbal cues.,"Text-rich interactions, chat logs, and typed feedback."
+Face-only,Facial image,Uses non-verbal affective cues independent of wording.,Sensitive to image quality and expression ambiguity.,Vision-available settings where text is unavailable.
+Fused bimodal,Text + facial image,Integrates complementary cues and improves robustness.,Requires both modalities and tuning of alpha.,Primary mode for balanced affect-aware responses.
